@@ -11,7 +11,7 @@ window.customsGameApp = function () {
     isPrintingSoapSlip: false,
     printedSoapSlips: [],
     isPrintingWantedPoster: false,
-    printedWantedPoster: null,
+    printedWantedPosters: [],
     faultSimulationData: null,
     activeWindow: 'mainframe',
     activeTelemetryTab: 'metrics',
@@ -67,6 +67,7 @@ window.customsGameApp = function () {
           if (event.key === '2') this.confirmDenialWithCategory('EXPIRED_PASSPORT');
           if (event.key === '3') this.confirmDenialWithCategory('VERBAL_CONTRADICTION');
           if (event.key === '4') this.confirmDenialWithCategory('INTERPOL_WANTED');
+          if (event.key === '5') this.confirmDenialWithCategory('BIOMETRIC_MISMATCH');
           if (event.key === 'Escape') this.showCitationPicker = false;
           return;
         }
@@ -75,7 +76,7 @@ window.customsGameApp = function () {
 
     async startNewShiftDay() {
       this.printedSoapSlips = [];
-      this.printedWantedPoster = null;
+      this.printedWantedPosters = [];
       this.verdictReport = null;
       try {
         const res = await fetch('/api/inspections/shift/start', { method: 'POST' });
@@ -181,21 +182,42 @@ window.customsGameApp = function () {
       if (activeKey === 'passport') docEl = this.$refs.passportDoc;
       else if (activeKey === 'manifest') docEl = this.$refs.manifestDoc;
       else if (activeKey === 'rulebook') docEl = this.$refs.rulebookDoc;
-      else if (activeKey === 'wantedPoster') docEl = this.$refs.wantedPosterDoc;
       else docEl = document.getElementById(activeKey);
       window.DeskDragManager.updateDrag(event, this.dragState, deskEl, docEl);
     },
 
     stopDocDrag(event) {
       const deskEl = this.$refs.deskSurface;
-      const droppedDocKey = window.DeskDragManager.endDrag(event, this.dragState, deskEl);
-      if (droppedDocKey === 'passport' || droppedDocKey === 'manifest') {
-        this.handleDocumentDroppedInBoothSlot(droppedDocKey);
+      const outcome = window.DeskDragManager.endDrag(event, this.dragState, deskEl);
+      if (!outcome) return;
+      if (outcome.action === 'TRASH') {
+        this.handleDocumentTrashDrop(outcome.docKey);
+      } else if (outcome.action === 'RETURN_PASSENGER') {
+        this.handleDocumentDroppedInBoothSlot(outcome.docKey);
       }
+    },
+
+    handleDocumentTrashDrop(docKey) {
+      if (docKey.startsWith('soapSlip_')) {
+        this.printedSoapSlips = this.printedSoapSlips.filter((s) => s.id !== docKey);
+        delete this.dragState.documents[docKey];
+        window.ProceduralAudioEngine.playPaperRustle();
+        return;
+      }
+      if (docKey.startsWith('wantedPoster_')) {
+        this.printedWantedPosters = this.printedWantedPosters.filter((p) => p.id !== docKey);
+        delete this.dragState.documents[docKey];
+        window.ProceduralAudioEngine.playPaperRustle();
+        return;
+      }
+      window.DeskDragManager.bounceBackToDesk(this.dragState, docKey);
+      window.ProceduralAudioEngine.playAlertBuzzer();
+      this.appendChatMessage('SYSTEM', 'Protected document! Only printed slips (WSDL & Wanted lists) can be discarded in the trash bin.');
     },
 
     handleDocumentDroppedInBoothSlot(docKey) {
       if (!this.verdictStamp) {
+        window.DeskDragManager.bounceBackToDesk(this.dragState, docKey);
         this.appendChatMessage('TRAVELER', 'Officer, you have not stamped my passport yet! Use the stamp bay on the right first.');
         window.ProceduralAudioEngine.playAlertBuzzer();
         return;
@@ -210,7 +232,7 @@ window.customsGameApp = function () {
         this.finalizeRoundVerdict();
       } else {
         const remainingName = pReturned ? 'Customs Manifest' : 'Stamped Passport';
-        this.appendChatMessage('TRAVELER', `Thank you. Please slide my ${remainingName} through the slot as well.`);
+        this.appendChatMessage('TRAVELER', `Thank you. Please drag my ${remainingName} up here to the window as well.`);
       }
     },
 
@@ -315,7 +337,7 @@ window.customsGameApp = function () {
           isError: false
         });
 
-        const slipId = 'soapSlip_' + Date.now();
+        const slipId = 'soapSlip_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
         const deskWidth = this.$refs.deskSurface ? this.$refs.deskSurface.getBoundingClientRect().width : 1100;
         const nextCount = this.printedSoapSlips.length + 1;
         window.DeskDragManager.registerSoapPrintout(this.dragState, slipId, deskWidth, nextCount);
@@ -341,7 +363,7 @@ window.customsGameApp = function () {
 
         setTimeout(() => {
           this.isPrintingSoapSlip = false;
-        }, 1750);
+        }, 1450);
 
         this.manualCommand = '';
         this.$nextTick(() => {
@@ -362,17 +384,20 @@ window.customsGameApp = function () {
       try {
         const res = await fetch('/api/inspections/shift/current');
         this.shiftState = await res.json();
+        const posterId = 'wantedPoster_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
         const deskWidth = this.$refs.deskSurface ? this.$refs.deskSurface.getBoundingClientRect().width : 1100;
-        window.DeskDragManager.spawnWantedPosterPosition(this.dragState, deskWidth);
-        this.printedWantedPoster = {
+        const nextCount = this.printedWantedPosters.length + 1;
+        window.DeskDragManager.registerWantedPoster(this.dragState, posterId, deskWidth, nextCount);
+        this.printedWantedPosters.push({
+          id: posterId,
           dayNumber: this.shiftState.day_number,
           criminals: this.shiftState.wanted_list
-        };
+        });
       } catch (err) {
       } finally {
         setTimeout(() => {
           this.isPrintingWantedPoster = false;
-        }, 1200);
+        }, 1250);
       }
     },
 
@@ -404,7 +429,7 @@ window.customsGameApp = function () {
       this.selectedViolationCategory = null;
       this.verdictStamp = 'APPROVE';
       window.ProceduralAudioEngine.playStampImpact();
-      this.appendChatMessage('SYSTEM', 'Passport stamped ADMITTED. Drag Passport and Manifest up to the top slot to return them.');
+      this.appendChatMessage('SYSTEM', 'Passport stamped ADMITTED. Drag Passport and Manifest UP into the Passenger Window to hand them back.');
     },
 
     openDenialCitationPicker() {
@@ -419,7 +444,7 @@ window.customsGameApp = function () {
       this.selectedViolationCategory = categoryCode;
       this.verdictStamp = 'DENY';
       window.ProceduralAudioEngine.playStampImpact();
-      this.appendChatMessage('SYSTEM', `Passport stamped DETAINED (${categoryCode}). Drag Passport and Manifest up to the top slot to return them.`);
+      this.appendChatMessage('SYSTEM', `Passport stamped DETAINED (${categoryCode}). Drag Passport and Manifest UP into the Passenger Window to return them.`);
     },
 
     async finalizeRoundVerdict() {

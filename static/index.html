@@ -7,12 +7,12 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-  <link rel="stylesheet" href="/css/deskAndDocuments.css?v=20261116_6">
-  <link rel="stylesheet" href="/css/crtTerminal.css?v=20261116_6">
-  <script src="/js/mrzGenerator.js?v=20261116_6"></script>
-  <script src="/js/proceduralAudio.js?v=20261116_6"></script>
-  <script src="/js/deskDragManager.js?v=20261116_6"></script>
-  <script src="/js/customsGameApp.js?v=20261116_6"></script>
+  <link rel="stylesheet" href="/css/deskAndDocuments.css?v=20261116_7">
+  <link rel="stylesheet" href="/css/crtTerminal.css?v=20261116_7">
+  <script src="/js/mrzGenerator.js?v=20261116_7"></script>
+  <script src="/js/proceduralAudio.js?v=20261116_7"></script>
+  <script src="/js/deskDragManager.js?v=20261116_7"></script>
+  <script src="/js/customsGameApp.js?v=20261116_7"></script>
   <script defer src="https://unpkg.com/alpinejs@3.14.3/dist/cdn.min.js"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col select-none" x-data="customsGameApp()" x-init="initWorkstation()">
@@ -56,7 +56,10 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
 
-      <section class="lg:col-span-5 booth-window-glass rounded-2xl border-2 border-slate-700/90 flex flex-col justify-between overflow-hidden min-h-[325px]">
+      <section
+        :class="{ 'booth-drop-active': dragState.isHoveringReturnSlot }"
+        class="lg:col-span-5 booth-window-glass rounded-2xl border-2 border-slate-700/90 flex flex-col justify-between overflow-hidden min-h-[325px]"
+      >
         <div class="p-3.5 flex-1 flex flex-col">
           <div class="flex items-stretch space-x-3.5 flex-1">
             <div class="shrink-0 flex flex-col items-center justify-between bg-slate-900/60 p-2.5 rounded-xl border border-slate-800">
@@ -138,9 +141,12 @@
           </div>
         </div>
 
-        <div class="bg-slate-950/95 border-t-2 border-slate-700 px-4 py-1.5 flex items-center justify-between text-[10px] font-mono text-slate-400">
-          <span>BOOTH PASS-THROUGH SLOT</span>
-          <span x-text="!areDocumentsHandedOver ? 'AWAITING HANDOVER' : (verdictStamp ? 'DRAG DOCS TO SLOT BELOW TO RETURN' : 'INSPECTING ON DESK')"></span>
+        <div
+          :class="dragState.isHoveringReturnSlot ? 'bg-emerald-800 text-white border-emerald-400' : 'bg-slate-950/95 text-slate-400 border-slate-700'"
+          class="border-t-2 px-4 py-1.5 flex items-center justify-between text-[10px] font-mono transition"
+        >
+          <span>PASSENGER HANDOVER WINDOW</span>
+          <span class="font-bold" x-text="dragState.isHoveringReturnSlot ? 'RELEASE TO HAND DOCUMENT TO TRAVELER &uarr;' : (verdictStamp ? 'DRAG STAMPED DOCS UP HERE INTO WINDOW TO RETURN' : 'INSPECTING ON DESK')"></span>
         </div>
       </section>
 
@@ -165,7 +171,7 @@
                 <div class="flex items-start space-x-3">
                   <div class="shrink-0 text-center">
                     <img :src="passenger ? passenger.avatar_url : 'https://api.dicebear.com/9.x/notionists/svg?seed=CRT'" alt="CRT Fax" class="w-14 h-14 rounded crt-phosphor-portrait object-cover">
-                    <span class="text-[10px] text-emerald-500 block mt-0.5">FAX-FEED</span>
+                    <span class="text-[10px] text-emerald-500 block mt-0.5">LIVE CAM</span>
                   </div>
 
                   <div class="flex-1 overflow-y-auto max-h-28 space-y-0.5 text-base text-emerald-400 leading-tight crt-text-glow">
@@ -197,12 +203,12 @@
                     <span class="px-1.5 py-0.5 bg-emerald-950 border border-emerald-700 text-[10px] rounded">LPT1 SPOOL ONLY</span>
                   </div>
                   <p class="text-[11px] text-emerald-500 leading-relaxed">
-                    3 high-priority fugitives are scheduled to attempt border crossing today. Graphicalmugshots cannot be rendered on this text-mode terminal — spool the bulletin to the desk printer below.
+                    3 high-priority fugitives are scheduled to attempt border crossing today. Graphical mugshots cannot be rendered on this text-mode terminal — spool the bulletin to the desk printer below.
                   </p>
                 </div>
 
                 <div class="flex items-center justify-between pt-2 border-t border-emerald-950">
-                  <span class="text-[11px] text-emerald-500" x-text="printedWantedPoster ? 'STATUS: BULLETIN PRINTED TO DESK' : 'STATUS: NOT PRINTED YET'"></span>
+                  <span class="text-[11px] text-emerald-500" x-text="'COPIES PRINTED TODAY: ' + printedWantedPosters.length"></span>
                   <button
                     @click="printDailyWantedPoster()"
                     :disabled="isPrintingWantedPoster"
@@ -253,12 +259,15 @@
       class="flex-1 customs-desk-surface rounded-2xl border-2 border-slate-700 min-h-[485px] relative select-none"
     >
       <div
-        :class="{ 'slot-highlight': dragState.isHoveringReturnSlot }"
-        class="booth-transfer-slot absolute top-0 left-6 w-[500px] max-w-[90%] h-9 rounded-b-xl px-4 flex items-center justify-between text-[11px] font-mono z-10 pointer-events-none"
+        :class="{ 'trash-drop-active': dragState.isHoveringTrashBin }"
+        class="trash-shredder-bin absolute left-3 bottom-3 w-[112px] h-[145px] rounded-xl p-2.5 flex flex-col items-center justify-between text-center pointer-events-none z-10"
       >
-        <div class="flex items-center space-x-2">
-          <span class="w-2 h-2 rounded-full" :class="verdictStamp ? 'bg-emerald-400 animate-ping' : 'bg-amber-400'"></span>
-          <span class="font-bold text-slate-200 uppercase tracking-wider" x-text="verdictStamp ? 'DROP STAMPED PASSPORT &amp; MANIFEST HERE TO RETURN TO TRAVELER &uarr;' : 'WINDOW TRAY SLOT (DOCUMENTS ENTER &amp; EXIT HERE)'"></span>
+        <div class="text-[9px] font-mono font-black text-slate-300 uppercase tracking-wider border-b border-slate-600 pb-1 w-full">
+          PAPER SHREDDER
+        </div>
+        <div class="text-2xl opacity-75">&#128465;</div>
+        <div class="text-[8.5px] font-mono leading-tight" :class="dragState.isHoveringTrashBin ? 'text-rose-200 font-bold' : 'text-slate-400'">
+          <span x-text="dragState.isHoveringTrashBin ? 'RELEASE TO DISCARD PRINTED SLIP' : 'DROP PRINTED SLIPS HERE'"></span>
         </div>
       </div>
 
@@ -301,7 +310,7 @@
       <div
         x-show="showCitationPicker"
         style="z-index: 99999;"
-        class="absolute right-5 bottom-24 w-[328px] bg-rose-950 border-2 border-rose-400 rounded-xl p-3 space-y-1.5 shadow-[0_25px_60px_rgba(0,0,0,0.98)] font-mono text-[11px] pointer-events-auto"
+        class="absolute right-5 bottom-24 w-[332px] bg-rose-950 border-2 border-rose-400 rounded-xl p-3 space-y-1.5 shadow-[0_25px_60px_rgba(0,0,0,0.98)] font-mono text-[11px] pointer-events-auto"
       >
         <div class="flex items-center justify-between border-b border-rose-800 pb-1">
           <span class="text-rose-200 font-black uppercase text-[10px]">SELECT DETENTION REASON (+150 PTS):</span>
@@ -318,6 +327,9 @@
         </button>
         <button @click="confirmDenialWithCategory('INTERPOL_WANTED')" class="w-full text-left px-2.5 py-1.5 bg-rose-900 hover:bg-rose-800 border border-rose-500 rounded text-white font-semibold transition">
           [4] Daily Wanted Criminal Match
+        </button>
+        <button @click="confirmDenialWithCategory('BIOMETRIC_MISMATCH')" class="w-full text-left px-2.5 py-1.5 bg-rose-900 hover:bg-rose-800 border border-rose-500 rounded text-white font-semibold transition">
+          [5] Biometric Photo / Age Discrepancy
         </button>
       </div>
 
@@ -360,13 +372,13 @@
           <div class="font-mono text-[10.5px] h-full flex flex-col justify-between">
             <div>
               <div class="flex items-center justify-between border-b-2 border-red-900/40 pb-1.5 mb-2.5 text-[9px] font-black text-red-950">
-                <span>CH. 1 // WSDL &amp; DATES</span>
+                <span>CH. 1 // WSDL &amp; BIOMETRICS</span>
                 <span>P. 1/3</span>
               </div>
-              <ul class="space-y-2.5 text-stone-900 leading-snug">
-                <li>&bull; <strong>1. Current Shift Date:</strong> Today is <strong>2026-11-16</strong>. Detain any passport with a <em>Valid Until</em> date prior to today.</li>
-                <li>&bull; <strong>2. SOAP Mainframe:</strong> Type the traveler's ISO code into <code>MAINFRAME.EXE</code> to print the official WSDL slip.</li>
-                <li>&bull; <strong>3. Mandatory Match:</strong> Capital City, Currency Code, and Phone DDI must match the WSDL printout.</li>
+              <ul class="space-y-2 text-stone-900 leading-snug">
+                <li>&bull; <strong>1. Shift Date:</strong> Today is <strong>2026-11-16</strong>. Reject expired passports or forged birth-to-age math.</li>
+                <li>&bull; <strong>2. Photo Match:</strong> Verify the passport photo matches the visitor standing at the window.</li>
+                <li>&bull; <strong>3. SOAP Check:</strong> Print the ISO WSDL slip to verify Capital, Currency, and Phone DDI.</li>
               </ul>
             </div>
             <div class="flex items-center justify-between pt-2 border-t border-red-900/30 text-[9px] font-black">
@@ -383,8 +395,8 @@
                 <span>CH. 2 // INTERROGATION</span>
                 <span>P. 2/3</span>
               </div>
-              <ul class="space-y-2.5 text-stone-900 leading-snug">
-                <li>&bull; <strong>1. Request Handover:</strong> Click <em>"Papers, Please"</em> at the booth window to receive the traveler's documents.</li>
+              <ul class="space-y-2 text-stone-900 leading-snug">
+                <li>&bull; <strong>1. Request Handover:</strong> Click <em>"Papers, Please"</em> at the booth window to receive documents.</li>
                 <li>&bull; <strong>2. Questioning:</strong> Use the 3 interrogation buttons under the chat log to verify Origin, Currency, and Purpose.</li>
                 <li>&bull; <strong>3. Contradictions:</strong> Detain any visitor whose spoken answers contradict their Passport or Manifest.</li>
               </ul>
@@ -400,13 +412,13 @@
           <div class="font-mono text-[10.5px] h-full flex flex-col justify-between">
             <div>
               <div class="flex items-center justify-between border-b-2 border-red-900/40 pb-1.5 mb-2.5 text-[9px] font-black text-red-950">
-                <span>CH. 3 // WANTED CRIMINALS</span>
+                <span>CH. 3 // WANTED &amp; TRASH</span>
                 <span>P. 3/3</span>
               </div>
-              <ul class="space-y-2.5 text-stone-900 leading-snug">
-                <li>&bull; <strong>1. Daily Wanted Sheet:</strong> Open <code>WANTED_LIST.EXE</code> on the CRT monitor and print the 3 Wanted Criminals onto the desk.</li>
-                <li>&bull; <strong>2. Visual Check:</strong> Compare the 3 wanted photos and names against every visitor in the shift.</li>
-                <li>&bull; <strong>3. Return Docs:</strong> After stamping, drag Passport and Manifest up to the top slot!</li>
+              <ul class="space-y-2 text-stone-900 leading-snug">
+                <li>&bull; <strong>1. Wanted Sheet:</strong> Open <code>WANTED_LIST.EXE</code> on the monitor to print the 3 Wanted Criminals.</li>
+                <li>&bull; <strong>2. Shredder Bin:</strong> Drag old printed slips to the Trash Bin on the bottom-left.</li>
+                <li>&bull; <strong>3. Return Docs:</strong> Drag stamped Passport &amp; Manifest UP into the Passenger Window!</li>
               </ul>
             </div>
             <div class="flex items-center justify-between pt-2 border-t border-red-900/30 text-[9px] font-black">
@@ -423,7 +435,7 @@
           @pointerdown="startDocDrag($event, slip.id)"
           :class="{ 'is-dragging': isDocDragging(slip.id) }"
           :style="getDocStyle(slip.id)"
-          class="draggable-document soap-printout-slip soap-printout-feeding bg-white text-slate-900 px-8 font-mono text-[11px]"
+          class="draggable-document soap-printout-slip bg-white text-slate-900 px-8 font-mono text-[11px] shadow-2xl"
         >
           <div class="soap-print-line font-black text-slate-900 border-b border-slate-400/50">
             <span>WSDL SOAP 1.1 RECORD</span>
@@ -470,24 +482,24 @@
         </article>
       </template>
 
-      <template x-if="printedWantedPoster">
+      <template x-for="poster in printedWantedPosters" :key="poster.id">
         <article
-          x-ref="wantedPosterDoc"
-          @pointerdown="startDocDrag($event, 'wantedPoster')"
-          :class="{ 'is-dragging': isDocDragging('wantedPoster') }"
-          :style="getDocStyle('wantedPoster')"
-          class="draggable-document wanted-poster-sheet bg-stone-100 text-stone-900 rounded-b-lg p-3.5 font-mono text-xs w-[255px]"
+          :id="poster.id"
+          @pointerdown="startDocDrag($event, poster.id)"
+          :class="{ 'is-dragging': isDocDragging(poster.id) }"
+          :style="getDocStyle(poster.id)"
+          class="draggable-document wanted-poster-sheet bg-stone-100 text-stone-900 rounded-b-lg p-3.5 font-mono text-xs w-[255px] shadow-2xl"
         >
           <div class="border-b-2 border-red-700 pb-1.5 mb-2.5 flex items-center justify-between">
             <div>
               <div class="font-black text-red-800 text-[11px] tracking-wider uppercase">WANTED FUGITIVES</div>
-              <div class="text-[8.5px] text-stone-600">DAILY BULLETIN // DAY <span x-text="printedWantedPoster.dayNumber"></span></div>
+              <div class="text-[8.5px] text-stone-600">DAILY BULLETIN // DAY <span x-text="poster.dayNumber"></span></div>
             </div>
             <span class="px-1.5 py-0.5 bg-red-700 text-white text-[8px] font-bold rounded">INTERPOL</span>
           </div>
 
           <div class="space-y-2">
-            <template x-for="crim in printedWantedPoster.criminals" :key="crim.criminal_id">
+            <template x-for="crim in poster.criminals" :key="crim.criminal_id">
               <div class="flex items-center space-x-2.5 bg-amber-50 p-2 rounded border border-stone-300 shadow-sm">
                 <img :src="crim.avatar_url" class="w-12 h-12 rounded border border-stone-400 bg-white object-cover shrink-0 pointer-events-none">
                 <div class="flex-1 min-w-0">
@@ -512,7 +524,7 @@
             @pointerdown="startDocDrag($event, 'passport')"
             :class="{ 'is-dragging': isDocDragging('passport') }"
             :style="getDocStyle('passport')"
-            class="draggable-document document-slide-enter passport-document-card rounded-xl p-2"
+            class="draggable-document passport-document-card rounded-xl p-2"
           >
             <div class="flex items-center justify-between px-2 pb-1 text-[10px] font-mono text-amber-300/90">
               <span class="font-bold tracking-widest uppercase">E-PASSPORT // 2026</span>
@@ -538,7 +550,7 @@
 
               <div class="relative z-10 flex space-x-2.5 mb-2">
                 <div class="relative shrink-0">
-                  <img :src="passenger.avatar_url" alt="Biometric Photo" class="w-16 h-20 rounded border border-amber-900/40 bg-amber-50 object-cover pointer-events-none">
+                  <img :src="passenger.passport_photo_url || passenger.avatar_url" alt="Biometric Photo" class="w-16 h-20 rounded border border-amber-900/40 bg-amber-50 object-cover pointer-events-none">
                   <div class="hologram-seal absolute -bottom-1 -right-1 pointer-events-none"></div>
                 </div>
 
@@ -554,7 +566,7 @@
                     </div>
                     <div>
                       <span class="text-[8px] text-slate-500 block uppercase">Age</span>
-                      <span x-text="passenger.age + ' YRS'"></span>
+                      <span class="font-bold text-slate-900" x-text="passenger.age + ' YRS'"></span>
                     </div>
                   </div>
                   <div>
@@ -584,44 +596,46 @@
             @pointerdown="startDocDrag($event, 'manifest')"
             :class="{ 'is-dragging': isDocDragging('manifest') }"
             :style="getDocStyle('manifest')"
-            class="draggable-document document-slide-enter manifest-document-card rounded-b-xl p-3.5"
+            class="draggable-document manifest-document-card rounded-b-xl overflow-hidden shadow-2xl"
           >
-            <div class="flex items-center justify-between border-b border-slate-300 pb-1.5 mb-2">
+            <div class="bg-blue-950 text-white px-3.5 py-2 flex items-center justify-between border-b-2 border-amber-400">
               <div>
-                <div class="text-[10px] font-black text-slate-900 uppercase tracking-wider">CURRENCY &amp; DDI MANIFEST</div>
-                <div class="text-[8px] font-mono text-slate-500">CUSTOMS FORM 2026-B</div>
+                <div class="text-[10px] font-black uppercase tracking-widest text-amber-300">CUSTOMS &amp; MONETARY MANIFEST</div>
+                <div class="text-[8px] font-mono text-blue-200">FORM 6059-B // INTERNATIONAL ARRIVAL</div>
               </div>
-              <span class="px-1.5 py-0.5 bg-slate-800 text-white font-mono text-[8px] rounded">ENTRY</span>
+              <span class="px-1.5 py-0.5 bg-blue-800 border border-blue-500 text-amber-200 font-mono text-[8px] font-bold rounded">DECLARED</span>
             </div>
 
-            <div class="grid grid-cols-2 gap-2 mb-2 font-mono text-xs">
-              <div class="bg-white p-1.5 rounded border border-slate-300">
-                <span class="text-[8px] text-slate-500 block uppercase">Currency</span>
-                <span class="text-xs font-black text-slate-900" x-text="passenger.declared_currency_code"></span>
+            <div class="p-3.5 space-y-2.5 font-mono text-xs">
+              <div class="grid grid-cols-2 gap-2">
+                <div class="bg-white p-2 rounded-lg border border-slate-300 shadow-sm">
+                  <span class="text-[8px] text-slate-500 block uppercase font-bold">Declared Currency</span>
+                  <span class="text-sm font-black text-blue-950" x-text="passenger.declared_currency_code"></span>
+                </div>
+                <div class="bg-white p-2 rounded-lg border border-slate-300 shadow-sm">
+                  <span class="text-[8px] text-slate-500 block uppercase font-bold">Embassy Telecom DDI</span>
+                  <span class="text-sm font-black text-blue-950" x-text="'+' + passenger.declared_phone_code"></span>
+                </div>
               </div>
-              <div class="bg-white p-1.5 rounded border border-slate-300">
-                <span class="text-[8px] text-slate-500 block uppercase">Phone DDI</span>
-                <span class="text-xs font-black text-slate-900" x-text="'+' + passenger.declared_phone_code"></span>
-              </div>
-            </div>
 
-            <div class="bg-slate-200/70 p-1.5 rounded border border-slate-300 text-[9.5px] font-mono text-slate-700 mb-2 space-y-0.5">
-              <div class="flex justify-between">
-                <span>CAPITAL:</span>
-                <span class="font-bold text-slate-900" x-text="passenger.declared_capital"></span>
+              <div class="bg-white p-2 rounded-lg border border-slate-300 shadow-sm space-y-1 text-[10px]">
+                <div class="flex justify-between border-b border-slate-200 pb-1">
+                  <span class="text-slate-500 font-bold">DECLARED CAPITAL:</span>
+                  <span class="font-black text-slate-900" x-text="passenger.declared_capital"></span>
+                </div>
+                <div class="pt-0.5">
+                  <span class="text-[8.5px] text-slate-500 block uppercase font-bold">Declared Purpose of Entry:</span>
+                  <div class="font-bold text-slate-900 whitespace-normal break-words leading-snug mt-0.5" x-text="passenger.travel_purpose"></div>
+                </div>
               </div>
-              <div class="flex justify-between">
-                <span>PURPOSE:</span>
-                <span class="font-semibold text-slate-900 truncate max-w-[135px]" x-text="passenger.travel_purpose"></span>
-              </div>
-            </div>
 
-            <div class="bg-white p-1.5 rounded border border-slate-300 flex flex-col items-center">
-              <svg class="w-full h-6" viewBox="0 0 220 28" preserveAspectRatio="none">
-                <template x-for="(bar, idx) in barcodeBars()" :key="idx">
-                  <rect :x="bar.x" y="2" :width="bar.width" height="24" fill="#0f172a" />
-                </template>
-              </svg>
+              <div class="bg-white px-2 py-1.5 rounded-lg border border-slate-300 flex flex-col items-center">
+                <svg class="w-full h-6" viewBox="0 0 220 28" preserveAspectRatio="none">
+                  <template x-for="(bar, idx) in barcodeBars()" :key="idx">
+                    <rect :x="bar.x" y="2" :width="bar.width" height="24" fill="#0f172a" />
+                  </template>
+                </svg>
+              </div>
             </div>
           </article>
         </div>
