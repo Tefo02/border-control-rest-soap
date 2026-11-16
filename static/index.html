@@ -7,12 +7,12 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-  <link rel="stylesheet" href="/css/deskAndDocuments.css">
-  <link rel="stylesheet" href="/css/crtTerminal.css">
-  <script src="/js/mrzGenerator.js"></script>
-  <script src="/js/proceduralAudio.js"></script>
-  <script src="/js/deskDragManager.js"></script>
-  <script src="/js/customsGameApp.js"></script>
+  <link rel="stylesheet" href="/css/deskAndDocuments.css?v=20261116_6">
+  <link rel="stylesheet" href="/css/crtTerminal.css?v=20261116_6">
+  <script src="/js/mrzGenerator.js?v=20261116_6"></script>
+  <script src="/js/proceduralAudio.js?v=20261116_6"></script>
+  <script src="/js/deskDragManager.js?v=20261116_6"></script>
+  <script src="/js/customsGameApp.js?v=20261116_6"></script>
   <script defer src="https://unpkg.com/alpinejs@3.14.3/dist/cdn.min.js"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col select-none" x-data="customsGameApp()" x-init="initWorkstation()">
@@ -56,31 +56,33 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
 
-      <section class="lg:col-span-5 booth-window-glass rounded-2xl border-2 border-slate-700/90 flex flex-col justify-between overflow-hidden min-h-[320px]">
-        <div class="p-4 flex-1 flex flex-col justify-between">
-          <div class="flex items-start space-x-3.5 h-full">
-            <div class="relative shrink-0 flex flex-col items-center">
-              <div class="w-24 h-28 rounded-2xl bg-slate-800/90 border-2 border-slate-600 shadow-2xl overflow-hidden flex items-end justify-center">
-                <img :src="passenger ? passenger.avatar_url : 'https://api.dicebear.com/9.x/notionists/svg?seed=Booth'" alt="Traveler at Window" class="w-24 h-24 object-cover">
+      <section class="lg:col-span-5 booth-window-glass rounded-2xl border-2 border-slate-700/90 flex flex-col justify-between overflow-hidden min-h-[325px]">
+        <div class="p-3.5 flex-1 flex flex-col">
+          <div class="flex items-stretch space-x-3.5 flex-1">
+            <div class="shrink-0 flex flex-col items-center justify-between bg-slate-900/60 p-2.5 rounded-xl border border-slate-800">
+              <div class="flex flex-col items-center">
+                <div class="w-24 h-28 rounded-xl bg-slate-800 border-2 border-slate-600 shadow-2xl overflow-hidden flex items-end justify-center">
+                  <img :src="passenger ? passenger.avatar_url : 'https://api.dicebear.com/9.x/notionists/svg?seed=Booth'" alt="Traveler at Window" class="w-24 h-24 object-cover">
+                </div>
+                <span class="text-[11px] font-mono font-bold text-slate-200 mt-2 text-center max-w-[100px] leading-tight" x-text="passenger ? passenger.passenger_name : ''"></span>
               </div>
-              <span class="text-[10px] font-mono font-bold text-slate-300 mt-1.5 text-center max-w-[96px] truncate" x-text="passenger ? passenger.passenger_name : ''"></span>
-              <div class="w-16 h-2.5 booth-speaker-grille rounded-full border border-slate-700 mt-1.5"></div>
+              <div class="w-16 h-3 booth-speaker-grille rounded-full border border-slate-700 mt-2"></div>
             </div>
 
-            <div class="flex-1 flex flex-col justify-between h-full space-y-2">
+            <div class="flex-1 flex flex-col justify-between min-h-full">
               <div
                 x-ref="chatScrollBox"
-                class="bg-slate-900/90 border border-slate-700 rounded-xl p-2.5 h-40 overflow-y-auto space-y-2 text-xs"
+                class="bg-slate-900/95 border border-slate-700 rounded-xl p-3 flex-1 min-h-[185px] max-h-[225px] overflow-y-auto space-y-2 text-xs shadow-inner"
               >
                 <template x-for="msg in chatMessages" :key="msg.id">
                   <div :class="msg.sender === 'OFFICER' ? 'text-right' : 'text-left'">
                     <div
                       :class="{
-                        'bg-sky-950/90 border-sky-700/80 text-sky-100 inline-block': msg.sender === 'OFFICER',
-                        'bg-slate-800 border-slate-600 text-slate-100 inline-block': msg.sender === 'TRAVELER',
+                        'bg-sky-950/90 border-sky-700/80 text-sky-100 inline-block text-left': msg.sender === 'OFFICER',
+                        'bg-slate-800 border-slate-600 text-slate-100 inline-block text-left': msg.sender === 'TRAVELER',
                         'bg-amber-950/80 border-amber-700/80 text-amber-200 block text-center font-mono text-[10px]': msg.sender === 'SYSTEM'
                       }"
-                      class="px-2.5 py-1.5 rounded-xl border max-w-[92%] leading-snug"
+                      class="px-3 py-1.5 rounded-xl border max-w-[92%] leading-snug"
                     >
                       <span class="text-[9px] font-mono font-bold uppercase block opacity-75" x-show="msg.sender !== 'SYSTEM'" x-text="msg.sender"></span>
                       <span x-text="msg.text"></span>
@@ -89,47 +91,49 @@
                 </template>
               </div>
 
-              <div x-show="passenger && !areDocumentsHandedOver">
-                <button
-                  @click="requestDocumentsFromTraveler()"
-                  class="w-full py-2 px-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl shadow-lg text-xs font-mono uppercase tracking-wider transition flex items-center justify-center space-x-2"
-                >
-                  <span>"PAPERS, PLEASE" — REQUEST DOCUMENTS [SPACE]</span>
-                </button>
-              </div>
-
-              <div x-show="passenger && areDocumentsHandedOver && !verdictReport" class="flex flex-wrap gap-1.5">
-                <button
-                  @click="askTraveler('origin')"
-                  :class="activeInterrogationTopic === 'origin' ? 'bg-sky-900 border-sky-400 text-white' : 'bg-slate-900/90 border-slate-700 text-slate-300 hover:border-slate-500'"
-                  class="px-2.5 py-1 rounded-lg border text-[10px] font-mono transition"
-                >
-                  Ask Origin &amp; DDI
-                </button>
-                <button
-                  @click="askTraveler('currency')"
-                  :class="activeInterrogationTopic === 'currency' ? 'bg-sky-900 border-sky-400 text-white' : 'bg-slate-900/90 border-slate-700 text-slate-300 hover:border-slate-500'"
-                  class="px-2.5 py-1 rounded-lg border text-[10px] font-mono transition"
-                >
-                  Ask Currency
-                </button>
-                <button
-                  @click="askTraveler('purpose')"
-                  :class="activeInterrogationTopic === 'purpose' ? 'bg-sky-900 border-sky-400 text-white' : 'bg-slate-900/90 border-slate-700 text-slate-300 hover:border-slate-500'"
-                  class="px-2.5 py-1 rounded-lg border text-[10px] font-mono transition"
-                >
-                  Ask Purpose
-                </button>
-              </div>
-
-              <template x-if="verdictReport">
-                <div :class="verdictReport.is_correct ? 'bg-emerald-950/90 border-emerald-600' : 'bg-rose-950/90 border-rose-600'" class="p-2.5 rounded-xl border text-[11px] font-mono space-y-1.5">
-                  <div class="font-bold text-white leading-tight" x-text="(verdictReport.score_delta > 0 ? '+' + verdictReport.score_delta : verdictReport.score_delta) + ' PTS — ' + verdictReport.technical_explanation"></div>
-                  <button @click="advanceAfterVerdict()" class="w-full py-1.5 bg-sky-600 hover:bg-sky-500 text-white font-black rounded-lg text-xs uppercase tracking-wider transition">
-                    <span x-text="verdictReport.is_shift_completed ? 'SHIFT COMPLETE — START NEXT DAY [ENTER] &rarr;' : 'CALL NEXT PASSENGER [ENTER] &rarr;'"></span>
+              <div class="pt-2">
+                <div x-show="passenger && !areDocumentsHandedOver">
+                  <button
+                    @click="requestDocumentsFromTraveler()"
+                    class="w-full py-2.5 px-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl shadow-lg text-xs font-mono uppercase tracking-wider transition flex items-center justify-center space-x-2"
+                  >
+                    <span>"PAPERS, PLEASE" — REQUEST DOCUMENTS [SPACE]</span>
                   </button>
                 </div>
-              </template>
+
+                <div x-show="passenger && areDocumentsHandedOver && !verdictReport" class="grid grid-cols-3 gap-1.5">
+                  <button
+                    @click="askTraveler('origin')"
+                    :class="activeInterrogationTopic === 'origin' ? 'bg-sky-900 border-sky-400 text-white' : 'bg-slate-900/90 border-slate-700 text-slate-300 hover:border-slate-500'"
+                    class="py-1.5 px-2 rounded-lg border text-[10px] font-mono font-semibold transition text-center"
+                  >
+                    Ask Origin/DDI
+                  </button>
+                  <button
+                    @click="askTraveler('currency')"
+                    :class="activeInterrogationTopic === 'currency' ? 'bg-sky-900 border-sky-400 text-white' : 'bg-slate-900/90 border-slate-700 text-slate-300 hover:border-slate-500'"
+                    class="py-1.5 px-2 rounded-lg border text-[10px] font-mono font-semibold transition text-center"
+                  >
+                    Ask Currency
+                  </button>
+                  <button
+                    @click="askTraveler('purpose')"
+                    :class="activeInterrogationTopic === 'purpose' ? 'bg-sky-900 border-sky-400 text-white' : 'bg-slate-900/90 border-slate-700 text-slate-300 hover:border-slate-500'"
+                    class="py-1.5 px-2 rounded-lg border text-[10px] font-mono font-semibold transition text-center"
+                  >
+                    Ask Purpose
+                  </button>
+                </div>
+
+                <template x-if="verdictReport">
+                  <div :class="verdictReport.is_correct ? 'bg-emerald-950/90 border-emerald-600' : 'bg-rose-950/90 border-rose-600'" class="p-2 rounded-xl border text-[11px] font-mono space-y-1.5">
+                    <div class="font-bold text-white leading-tight" x-text="(verdictReport.score_delta > 0 ? '+' + verdictReport.score_delta : verdictReport.score_delta) + ' PTS — ' + verdictReport.technical_explanation"></div>
+                    <button @click="advanceAfterVerdict()" class="w-full py-1.5 bg-sky-600 hover:bg-sky-500 text-white font-black rounded-lg text-xs uppercase tracking-wider transition">
+                      <span x-text="verdictReport.is_shift_completed ? 'SHIFT COMPLETE — START NEXT DAY [ENTER] &rarr;' : 'CALL NEXT PASSENGER [ENTER] &rarr;'"></span>
+                    </button>
+                  </div>
+                </template>
+              </div>
             </div>
           </div>
         </div>
@@ -143,15 +147,15 @@
       <section class="lg:col-span-7 flex flex-col justify-between">
         <div class="crt-monitor-housing p-3.5 flex-1 flex flex-col justify-between">
           <div class="crt-screen-recess flex-1 flex flex-col">
-            <div class="crt-glass-tube p-3.5 flex-1 flex flex-col justify-between font-crt text-lg min-h-[215px]">
+            <div class="crt-glass-tube p-3.5 flex-1 flex flex-col justify-between font-crt text-lg min-h-[225px]">
 
               <div class="flex items-center justify-between border-b border-emerald-900/80 pb-1.5 mb-2 relative z-10">
                 <span class="text-emerald-400 text-sm tracking-widest font-bold">IBM OS/390 TERMINAL</span>
                 <div class="flex space-x-1.5 font-mono text-[10px]">
-                  <button @click="activeWindow = 'mainframe'" :class="activeWindow === 'mainframe' ? 'bg-emerald-500 text-black font-black' : 'bg-black/70 text-emerald-400 border border-emerald-700'" class="px-2 py-0.5 rounded transition">
+                  <button @click="activeWindow = 'mainframe'" :class="activeWindow === 'mainframe' ? 'bg-emerald-500 text-black font-black' : 'bg-black/70 text-emerald-400 border border-emerald-700'" class="px-2.5 py-0.5 rounded transition">
                     MAINFRAME.EXE [SOAP]
                   </button>
-                  <button @click="activeWindow = 'interpol'" :class="activeWindow === 'interpol' ? 'bg-emerald-500 text-black font-black' : 'bg-black/70 text-emerald-400 border border-emerald-700'" class="px-2 py-0.5 rounded transition">
+                  <button @click="activeWindow = 'interpol'" :class="activeWindow === 'interpol' ? 'bg-emerald-500 text-black font-black' : 'bg-black/70 text-emerald-400 border border-emerald-700'" class="px-2.5 py-0.5 rounded transition">
                     WANTED_LIST.EXE [REST]
                   </button>
                 </div>
@@ -187,32 +191,25 @@
               </div>
 
               <div x-show="activeWindow === 'interpol'" class="flex-1 flex flex-col justify-between relative z-10 font-mono text-xs text-emerald-300">
-                <div class="flex items-center justify-between">
-                  <div>
-                    <div class="text-emerald-400 font-bold">DAILY WANTED CRIMINALS REGISTRY (3 SUSPECTS)</div>
-                    <div class="text-[10px] text-emerald-600">Print the daily wanted sheet and compare photos &amp; names against visitors.</div>
+                <div class="bg-black/60 border border-emerald-800/80 rounded-lg p-3 space-y-1.5">
+                  <div class="text-emerald-400 font-bold flex items-center justify-between">
+                    <span>INTERPOL RED NOTICE SPOOLER // DAY <span x-text="shiftState ? shiftState.day_number : 1"></span></span>
+                    <span class="px-1.5 py-0.5 bg-emerald-950 border border-emerald-700 text-[10px] rounded">LPT1 SPOOL ONLY</span>
                   </div>
+                  <p class="text-[11px] text-emerald-500 leading-relaxed">
+                    3 high-priority fugitives are scheduled to attempt border crossing today. Graphicalmugshots cannot be rendered on this text-mode terminal — spool the bulletin to the desk printer below.
+                  </p>
+                </div>
+
+                <div class="flex items-center justify-between pt-2 border-t border-emerald-950">
+                  <span class="text-[11px] text-emerald-500" x-text="printedWantedPoster ? 'STATUS: BULLETIN PRINTED TO DESK' : 'STATUS: NOT PRINTED YET'"></span>
                   <button
                     @click="printDailyWantedPoster()"
                     :disabled="isPrintingWantedPoster"
-                    class="px-3 py-1.5 bg-emerald-800 hover:bg-emerald-700 border border-emerald-400 text-white font-bold rounded text-[11px] transition shrink-0"
+                    class="px-4 py-1.5 bg-emerald-800 hover:bg-emerald-700 border border-emerald-400 text-white font-bold rounded text-xs transition"
                   >
-                    <span x-text="isPrintingWantedPoster ? 'PRINTING...' : 'PRINT WANTED SHEET'"></span>
+                    <span x-text="isPrintingWantedPoster ? 'SPOOLING TO LPT1...' : 'PRINT DAILY WANTED LIST'"></span>
                   </button>
-                </div>
-
-                <div class="grid grid-cols-3 gap-2 my-1.5">
-                  <template x-if="shiftState && shiftState.wanted_list">
-                    <template x-for="crim in shiftState.wanted_list" :key="crim.criminal_id">
-                      <div class="bg-black/60 border border-emerald-800 rounded p-1.5 flex items-center space-x-2">
-                        <img :src="crim.avatar_url" class="w-8 h-8 rounded crt-phosphor-portrait shrink-0">
-                        <div class="truncate">
-                          <div class="text-[10px] font-bold text-emerald-200 truncate" x-text="crim.passenger_name"></div>
-                          <div class="text-[8px] text-emerald-500 truncate" x-text="crim.crime_description"></div>
-                        </div>
-                      </div>
-                    </template>
-                  </template>
                 </div>
               </div>
 
@@ -222,7 +219,7 @@
           <div class="pt-2.5 px-2 flex items-center justify-between">
             <div class="flex items-center space-x-3">
               <span class="px-2 py-0.5 bg-stone-800 text-amber-100 font-mono font-black text-[10px] tracking-widest rounded border border-stone-600">IBM 8514/A</span>
-              <span class="text-[10px] font-mono font-bold text-stone-700">COLOR DISPLAY</span>
+              <span class="text-[10px] font-mono font-bold text-stone-700">CRT MONITOR</span>
             </div>
 
             <div class="flex items-center space-x-3">
@@ -253,7 +250,7 @@
       @pointermove="moveDocDrag($event)"
       @pointerup="stopDocDrag($event)"
       @pointercancel="stopDocDrag($event)"
-      class="flex-1 customs-desk-surface rounded-2xl border-2 border-slate-700 min-h-[470px] relative select-none"
+      class="flex-1 customs-desk-surface rounded-2xl border-2 border-slate-700 min-h-[485px] relative select-none"
     >
       <div
         :class="{ 'slot-highlight': dragState.isHoveringReturnSlot }"
@@ -276,31 +273,35 @@
           </div>
           <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold" :class="dragState.isPassportInStampBay ? 'bg-emerald-950 text-emerald-300 border border-emerald-700' : 'bg-slate-800 text-slate-400'" x-text="dragState.isPassportInStampBay ? 'ALIGNED' : 'IDLE'"></span>
         </div>
+      </div>
 
-        <div class="grid grid-cols-2 gap-2.5 pt-2 border-t border-slate-700/80 pointer-events-auto stamp-controls-overlay relative">
-          <button
-            @click="stampPassportApprove()"
-            :disabled="!areDocumentsHandedOver || isSubmitting"
-            class="py-2.5 px-3 bg-emerald-800 hover:bg-emerald-700 disabled:bg-slate-800 disabled:text-slate-600 border-b-4 border-emerald-950 active:translate-y-0.5 text-white font-black rounded-xl shadow-lg text-xs font-mono uppercase tracking-wider transition flex flex-col items-center"
-          >
-            <span class="text-sm">&#9660; ADMIT</span>
-            <span class="text-[9px] text-emerald-200 font-normal">APPROVE ENTRY</span>
-          </button>
+      <div
+        style="z-index: 99990;"
+        class="absolute right-6 bottom-6 w-[316px] grid grid-cols-2 gap-2.5 pt-2 pointer-events-auto"
+      >
+        <button
+          @click="stampPassportApprove()"
+          :disabled="!areDocumentsHandedOver || isSubmitting"
+          class="py-2.5 px-3 bg-emerald-800 hover:bg-emerald-700 disabled:bg-slate-800 disabled:text-slate-600 border-b-4 border-emerald-950 active:translate-y-0.5 text-white font-black rounded-xl shadow-2xl text-xs font-mono uppercase tracking-wider transition flex flex-col items-center"
+        >
+          <span class="text-sm">&#9660; ADMIT</span>
+          <span class="text-[9px] text-emerald-200 font-normal">APPROVE ENTRY</span>
+        </button>
 
-          <button
-            @click="openDenialCitationPicker()"
-            :disabled="!areDocumentsHandedOver || isSubmitting"
-            class="py-2.5 px-3 bg-rose-800 hover:bg-rose-700 disabled:bg-slate-800 disabled:text-slate-600 border-b-4 border-rose-950 active:translate-y-0.5 text-white font-black rounded-xl shadow-lg text-xs font-mono uppercase tracking-wider transition flex flex-col items-center"
-          >
-            <span class="text-sm">&#9660; DETAIN</span>
-            <span class="text-[9px] text-rose-200 font-normal">DENY ENTRY</span>
-          </button>
-        </div>
+        <button
+          @click="openDenialCitationPicker()"
+          :disabled="!areDocumentsHandedOver || isSubmitting"
+          class="py-2.5 px-3 bg-rose-800 hover:bg-rose-700 disabled:bg-slate-800 disabled:text-slate-600 border-b-4 border-rose-950 active:translate-y-0.5 text-white font-black rounded-xl shadow-2xl text-xs font-mono uppercase tracking-wider transition flex flex-col items-center"
+        >
+          <span class="text-sm">&#9660; DETAIN</span>
+          <span class="text-[9px] text-rose-200 font-normal">DENY ENTRY</span>
+        </button>
       </div>
 
       <div
         x-show="showCitationPicker"
-        class="stamp-controls-overlay absolute right-4 bottom-24 w-[325px] bg-rose-950 border-2 border-rose-400 rounded-xl p-3 space-y-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.95)] font-mono text-[11px]"
+        style="z-index: 99999;"
+        class="absolute right-5 bottom-24 w-[328px] bg-rose-950 border-2 border-rose-400 rounded-xl p-3 space-y-1.5 shadow-[0_25px_60px_rgba(0,0,0,0.98)] font-mono text-[11px] pointer-events-auto"
       >
         <div class="flex items-center justify-between border-b border-rose-800 pb-1">
           <span class="text-rose-200 font-black uppercase text-[10px]">SELECT DETENTION REASON (+150 PTS):</span>
@@ -325,77 +326,92 @@
         @pointerdown="startDocDrag($event, 'rulebook')"
         :class="[
           isDocDragging('rulebook') ? 'is-dragging' : '',
-          rulebookPage === 0 ? 'rulebook-hardcover rounded-r-xl rounded-l-sm p-4' : 'rulebook-open-page rounded-r-xl rounded-l-sm p-4'
+          rulebookPage === 0 ? 'rulebook-hardcover bg-red-800 text-yellow-200 rounded-r-xl rounded-l-sm p-4' : 'rulebook-open-page bg-yellow-200 text-stone-900 rounded-r-xl rounded-l-sm p-4'
         ]"
         :style="getDocStyle('rulebook')"
-        class="draggable-document"
+        class="draggable-document w-[242px] h-[340px] flex flex-col justify-between shadow-2xl"
       >
         <template x-if="rulebookPage === 0">
-          <div class="border-2 border-amber-500/60 rounded-lg p-3 text-center space-y-3">
-            <div class="text-[9px] font-mono tracking-widest text-amber-300/80 uppercase">MINISTRY OF CUSTOMS</div>
-            <div class="w-10 h-10 mx-auto rounded-full border-2 border-amber-400 flex items-center justify-center text-amber-300 font-black text-base">
-              &#9878;
+          <div class="border-2 border-yellow-400/70 rounded-lg p-3.5 h-full flex flex-col justify-between text-center">
+            <div>
+              <div class="text-[9px] font-mono tracking-widest text-yellow-300/90 uppercase">MINISTRY OF CUSTOMS</div>
+              <div class="text-[8px] font-mono text-yellow-400/70 mt-0.5">DIRECTIVE 44-B // EDITION 2026</div>
             </div>
-            <div class="text-xs font-black tracking-wider uppercase text-amber-200">OFFICIAL INSPECTOR RULEBOOK</div>
+
+            <div class="my-auto space-y-3">
+              <div class="w-14 h-14 mx-auto rounded-full border-2 border-yellow-400 bg-red-950/60 flex items-center justify-center text-yellow-300 font-black text-2xl shadow-inner">
+                &#9878;
+              </div>
+              <div class="text-sm font-black tracking-wider uppercase text-yellow-100 leading-tight">
+                BORDER INSPECTOR<br>OFFICIAL RULEBOOK
+              </div>
+            </div>
+
             <button
               @click.stop="openRulebook()"
-              class="w-full py-1.5 bg-amber-500 hover:bg-amber-400 text-stone-950 font-mono font-black text-[10px] rounded uppercase tracking-wider transition"
+              class="w-full py-2 bg-yellow-400 hover:bg-yellow-300 text-red-950 font-mono font-black text-[10px] rounded-lg uppercase tracking-wider transition shadow"
             >
-              OPEN BOOK &rarr;
+              OPEN HANDBOOK &rarr;
             </button>
           </div>
         </template>
 
         <template x-if="rulebookPage === 1">
-          <div class="font-mono text-[10.5px] space-y-2">
-            <div class="flex items-center justify-between border-b border-stone-400 pb-1 text-[9px] font-bold text-stone-600">
-              <span>SECTION I // WSDL &amp; DOCUMENTS</span>
-              <span>PAGE 1 / 3</span>
+          <div class="font-mono text-[10.5px] h-full flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between border-b-2 border-red-900/40 pb-1.5 mb-2.5 text-[9px] font-black text-red-950">
+                <span>CH. 1 // WSDL &amp; DATES</span>
+                <span>P. 1/3</span>
+              </div>
+              <ul class="space-y-2.5 text-stone-900 leading-snug">
+                <li>&bull; <strong>1. Current Shift Date:</strong> Today is <strong>2026-11-16</strong>. Detain any passport with a <em>Valid Until</em> date prior to today.</li>
+                <li>&bull; <strong>2. SOAP Mainframe:</strong> Type the traveler's ISO code into <code>MAINFRAME.EXE</code> to print the official WSDL slip.</li>
+                <li>&bull; <strong>3. Mandatory Match:</strong> Capital City, Currency Code, and Phone DDI must match the WSDL printout.</li>
+              </ul>
             </div>
-            <ul class="space-y-1.5 text-stone-800 leading-snug">
-              <li>&bull; <strong>Expiration:</strong> Today is <strong>2026-11-16</strong>. Reject any passport expiring before today.</li>
-              <li>&bull; <strong>SOAP WSDL Check:</strong> Query the ISO code on the CRT monitor to print the official country slip.</li>
-              <li>&bull; <strong>Cross-Check:</strong> Verify Capital, Currency, and Phone DDI against both Passport and Manifest.</li>
-            </ul>
-            <div class="flex items-center justify-between pt-2 border-t border-stone-300 text-[9px] font-bold">
-              <button @click.stop="closeRulebookCover()" class="px-2 py-0.5 bg-stone-300 hover:bg-stone-400 rounded text-stone-800">&larr; COVER</button>
-              <button @click.stop="nextRulebookPage()" class="px-2 py-0.5 bg-amber-800 hover:bg-amber-700 rounded text-white">NEXT PAGE &rarr;</button>
+            <div class="flex items-center justify-between pt-2 border-t border-red-900/30 text-[9px] font-black">
+              <button @click.stop="closeRulebookCover()" class="px-2.5 py-1 bg-amber-300 hover:bg-amber-400 rounded text-stone-900">&larr; COVER</button>
+              <button @click.stop="nextRulebookPage()" class="px-2.5 py-1 bg-red-800 hover:bg-red-700 rounded text-yellow-100">NEXT &rarr;</button>
             </div>
           </div>
         </template>
 
         <template x-if="rulebookPage === 2">
-          <div class="font-mono text-[10.5px] space-y-2">
-            <div class="flex items-center justify-between border-b border-stone-400 pb-1 text-[9px] font-bold text-stone-600">
-              <span>SECTION II // INTERROGATION</span>
-              <span>PAGE 2 / 3</span>
+          <div class="font-mono text-[10.5px] h-full flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between border-b-2 border-red-900/40 pb-1.5 mb-2.5 text-[9px] font-black text-red-950">
+                <span>CH. 2 // INTERROGATION</span>
+                <span>P. 2/3</span>
+              </div>
+              <ul class="space-y-2.5 text-stone-900 leading-snug">
+                <li>&bull; <strong>1. Request Handover:</strong> Click <em>"Papers, Please"</em> at the booth window to receive the traveler's documents.</li>
+                <li>&bull; <strong>2. Questioning:</strong> Use the 3 interrogation buttons under the chat log to verify Origin, Currency, and Purpose.</li>
+                <li>&bull; <strong>3. Contradictions:</strong> Detain any visitor whose spoken answers contradict their Passport or Manifest.</li>
+              </ul>
             </div>
-            <ul class="space-y-1.5 text-stone-800 leading-snug">
-              <li>&bull; <strong>Request Papers:</strong> Click <em>"Papers, Please"</em> at the booth window to receive documents.</li>
-              <li>&bull; <strong>Chat History:</strong> Use the interrogation buttons to question Origin, Currency, and Purpose.</li>
-              <li>&bull; <strong>Contradictions:</strong> Detain any visitor whose spoken claims contradict their printed documents.</li>
-            </ul>
-            <div class="flex items-center justify-between pt-2 border-t border-stone-300 text-[9px] font-bold">
-              <button @click.stop="prevRulebookPage()" class="px-2 py-0.5 bg-stone-300 hover:bg-stone-400 rounded text-stone-800">&larr; PREV</button>
-              <button @click.stop="nextRulebookPage()" class="px-2 py-0.5 bg-amber-800 hover:bg-amber-700 rounded text-white">NEXT PAGE &rarr;</button>
+            <div class="flex items-center justify-between pt-2 border-t border-red-900/30 text-[9px] font-black">
+              <button @click.stop="prevRulebookPage()" class="px-2.5 py-1 bg-amber-300 hover:bg-amber-400 rounded text-stone-900">&larr; PREV</button>
+              <button @click.stop="nextRulebookPage()" class="px-2.5 py-1 bg-red-800 hover:bg-red-700 rounded text-yellow-100">NEXT &rarr;</button>
             </div>
           </div>
         </template>
 
         <template x-if="rulebookPage === 3">
-          <div class="font-mono text-[10.5px] space-y-2">
-            <div class="flex items-center justify-between border-b border-stone-400 pb-1 text-[9px] font-bold text-stone-600">
-              <span>SECTION III // WANTED LIST</span>
-              <span>PAGE 3 / 3</span>
+          <div class="font-mono text-[10.5px] h-full flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between border-b-2 border-red-900/40 pb-1.5 mb-2.5 text-[9px] font-black text-red-950">
+                <span>CH. 3 // WANTED CRIMINALS</span>
+                <span>P. 3/3</span>
+              </div>
+              <ul class="space-y-2.5 text-stone-900 leading-snug">
+                <li>&bull; <strong>1. Daily Wanted Sheet:</strong> Open <code>WANTED_LIST.EXE</code> on the CRT monitor and print the 3 Wanted Criminals onto the desk.</li>
+                <li>&bull; <strong>2. Visual Check:</strong> Compare the 3 wanted photos and names against every visitor in the shift.</li>
+                <li>&bull; <strong>3. Return Docs:</strong> After stamping, drag Passport and Manifest up to the top slot!</li>
+              </ul>
             </div>
-            <ul class="space-y-1.5 text-stone-800 leading-snug">
-              <li>&bull; <strong>Daily Shift:</strong> Each shift has 6 to 10 passengers and 3 Wanted Criminals.</li>
-              <li>&bull; <strong>Print Poster:</strong> Open <code>WANTED_LIST.EXE</code> on the monitor and print the Wanted Sheet.</li>
-              <li>&bull; <strong>Return Docs:</strong> After stamping, drag Passport and Manifest up to the top slot!</li>
-            </ul>
-            <div class="flex items-center justify-between pt-2 border-t border-stone-300 text-[9px] font-bold">
-              <button @click.stop="prevRulebookPage()" class="px-2 py-0.5 bg-stone-300 hover:bg-stone-400 rounded text-stone-800">&larr; PREV</button>
-              <button @click.stop="closeRulebookCover()" class="px-2 py-0.5 bg-stone-800 hover:bg-stone-700 rounded text-white">CLOSE BOOK</button>
+            <div class="flex items-center justify-between pt-2 border-t border-red-900/30 text-[9px] font-black">
+              <button @click.stop="prevRulebookPage()" class="px-2.5 py-1 bg-amber-300 hover:bg-amber-400 rounded text-stone-900">&larr; PREV</button>
+              <button @click.stop="closeRulebookCover()" class="px-2.5 py-1 bg-red-900 hover:bg-red-800 rounded text-yellow-100">CLOSE</button>
             </div>
           </div>
         </template>
@@ -407,7 +423,7 @@
           @pointerdown="startDocDrag($event, slip.id)"
           :class="{ 'is-dragging': isDocDragging(slip.id) }"
           :style="getDocStyle(slip.id)"
-          class="draggable-document soap-printout-slip soap-printout-feeding font-mono text-[11px]"
+          class="draggable-document soap-printout-slip soap-printout-feeding bg-white text-slate-900 px-8 font-mono text-[11px]"
         >
           <div class="soap-print-line font-black text-slate-900 border-b border-slate-400/50">
             <span>WSDL SOAP 1.1 RECORD</span>
@@ -460,17 +476,20 @@
           @pointerdown="startDocDrag($event, 'wantedPoster')"
           :class="{ 'is-dragging': isDocDragging('wantedPoster') }"
           :style="getDocStyle('wantedPoster')"
-          class="draggable-document wanted-poster-sheet rounded-b-lg p-3 font-mono text-xs"
+          class="draggable-document wanted-poster-sheet bg-stone-100 text-stone-900 rounded-b-lg p-3.5 font-mono text-xs w-[255px]"
         >
-          <div class="border-b-2 border-red-700 pb-1 mb-2 flex items-center justify-between">
-            <span class="font-black text-red-800 text-[11px] tracking-wider uppercase">WANTED CRIMINALS // DAY <span x-text="printedWantedPoster.dayNumber"></span></span>
+          <div class="border-b-2 border-red-700 pb-1.5 mb-2.5 flex items-center justify-between">
+            <div>
+              <div class="font-black text-red-800 text-[11px] tracking-wider uppercase">WANTED FUGITIVES</div>
+              <div class="text-[8.5px] text-stone-600">DAILY BULLETIN // DAY <span x-text="printedWantedPoster.dayNumber"></span></div>
+            </div>
             <span class="px-1.5 py-0.5 bg-red-700 text-white text-[8px] font-bold rounded">INTERPOL</span>
           </div>
 
           <div class="space-y-2">
             <template x-for="crim in printedWantedPoster.criminals" :key="crim.criminal_id">
-              <div class="flex items-center space-x-2.5 bg-amber-50/90 p-1.5 rounded border border-amber-300">
-                <img :src="crim.avatar_url" class="w-11 h-11 rounded border border-stone-400 bg-white object-cover shrink-0 pointer-events-none">
+              <div class="flex items-center space-x-2.5 bg-amber-50 p-2 rounded border border-stone-300 shadow-sm">
+                <img :src="crim.avatar_url" class="w-12 h-12 rounded border border-stone-400 bg-white object-cover shrink-0 pointer-events-none">
                 <div class="flex-1 min-w-0">
                   <div class="text-[11px] font-black text-stone-900 truncate" x-text="crim.passenger_name"></div>
                   <div class="text-[9px] font-bold text-red-700 truncate" x-text="crim.crime_description"></div>
@@ -478,6 +497,10 @@
                 </div>
               </div>
             </template>
+          </div>
+
+          <div class="mt-2.5 pt-1.5 border-t border-dashed border-stone-400 text-[8.5px] text-stone-500 text-center">
+            DETAIN IMMEDIATELY IF MATCHED AT BOOTH
           </div>
         </article>
       </template>

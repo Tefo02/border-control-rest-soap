@@ -47,15 +47,15 @@ body {
 }
 
 .stamp-station-bay {
-  background: linear-gradient(180deg, #1e2532 0%, #0f141c 100%);
+  background: linear-gradient(180deg, rgba(30, 37, 50, 0.55) 0%, rgba(15, 20, 28, 0.72) 100%);
   border: 2px dashed #475569;
-  box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.85), 0 8px 20px rgba(0, 0, 0, 0.6);
+  box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.65);
   transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
 .stamp-station-bay.bay-ready {
   border-color: #f59e0b;
-  background: linear-gradient(180deg, rgba(120, 53, 15, 0.28) 0%, rgba(15, 20, 28, 0.95) 100%);
+  background: linear-gradient(180deg, rgba(120, 53, 15, 0.25) 0%, rgba(15, 20, 28, 0.8) 100%);
 }
 
 .draggable-document {
@@ -89,7 +89,7 @@ body {
 }
 
 .passport-document-card {
-  width: 315px;
+  width: 310px;
   background: linear-gradient(155deg, #1f1b18 0%, #151210 100%);
   border: 1px solid rgba(217, 119, 6, 0.5);
   box-shadow: 0 16px 34px rgba(0, 0, 0, 0.75);
@@ -104,52 +104,97 @@ body {
 }
 
 .manifest-document-card {
-  width: 265px;
+  width: 260px;
   background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
   color: #0f172a;
   border-top: 5px dashed #475569;
   box-shadow: 0 14px 30px rgba(0, 0, 0, 0.68);
 }
 
-.rulebook-document-card {
-  width: 255px;
-  background: linear-gradient(160deg, #451a03 0%, #290f02 100%);
-  border: 2px solid #92400e;
-  color: #fef3c7;
-  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.75);
+.rulebook-hardcover {
+  width: 240px;
+  height: 338px;
+  background-color: #991b1b;
+  background-image: linear-gradient(145deg, #dc2626 0%, #991b1b 55%, #7f1d1d 100%);
+  border-left: 14px solid #450a0a;
+  border-top: 2px solid #ef4444;
+  border-right: 3px solid #450a0a;
+  border-bottom: 4px solid #450a0a;
+  color: #fef08a;
+  box-shadow:
+    5px 5px 0 #fef08a,
+    7px 7px 0 #7f1d1d,
+    0 20px 38px rgba(0, 0, 0, 0.85);
+}
+
+.rulebook-open-page {
+  width: 246px;
+  height: 342px;
+  background-color: #fef08a;
+  background-image: linear-gradient(90deg, #eab308 0px, #fef08a 14px, #fef9c3 100%);
+  border-left: 12px solid #7f1d1d;
+  border-right: 4px solid #991b1b;
+  border-bottom: 5px solid #7f1d1d;
+  border-top: 3px solid #991b1b;
+  color: #1c1917;
+  box-shadow: 0 20px 38px rgba(0, 0, 0, 0.85);
 }
 
 .soap-printout-slip {
-  width: 270px;
-  background:
-    radial-gradient(circle at 8px 12px, #161b24 3.5px, transparent 4px) 0 0 / 100% 20px repeat-y,
-    radial-gradient(circle at calc(100% - 8px) 12px, #161b24 3.5px, transparent 4px) 0 0 / 100% 20px repeat-y,
-    repeating-linear-gradient(180deg, #f8fafc 0px, #f8fafc 18px, #dcfce7 18px, #dcfce7 36px);
+  width: 295px;
+  padding-left: 30px !important;
+  padding-right: 30px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  background-color: #ffffff;
+  background-image:
+    radial-gradient(circle at 10px 12px, #161b24 3.5px, transparent 4px),
+    radial-gradient(circle at calc(100% - 10px) 12px, #161b24 3.5px, transparent 4px),
+    linear-gradient(90deg, transparent 21px, #cbd5e1 21px, #cbd5e1 22px, transparent 22px, transparent calc(100% - 22px), #cbd5e1 calc(100% - 22px), #cbd5e1 calc(100% - 21px), transparent calc(100% - 21px)),
+    repeating-linear-gradient(180deg, #ffffff 0px, #ffffff 24px, #d1fae5 24px, #d1fae5 48px);
+  background-size: 100% 24px, 100% 24px, 100% 24px, 100% 48px;
+  background-position: 0 0, 0 0, 0 0, 0 0;
   color: #0f172a;
-  border-top: 3px dotted #94a3b8;
-  border-bottom: 3px dotted #94a3b8;
-  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.72);
-  animation: printer-eject-motion 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  border-top: 3px dotted #64748b;
+  border-bottom: 3px dotted #64748b;
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.75);
 }
 
-.interpol-printout-slip {
-  width: 250px;
-  background: linear-gradient(180deg, #fff1f2 0%, #ffe4e6 100%);
-  color: #881337;
-  border-top: 4px solid #e11d48;
-  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.72);
-  animation: printer-eject-motion 0.45s ease-out;
+.soap-print-line {
+  height: 24px;
+  line-height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
-@keyframes printer-eject-motion {
+.soap-printout-feeding {
+  animation: tractor-paper-feed 1.75s steps(10, end) forwards;
+}
+
+@keyframes tractor-paper-feed {
   0% {
-    transform: translateY(-130px) scale(0.95);
-    opacity: 0.2;
+    clip-path: inset(0 0 92% 0);
+    transform: translateY(-135px);
   }
   100% {
-    transform: translateY(0) scale(1);
-    opacity: 1;
+    clip-path: inset(0 0 0 0);
+    transform: translateY(0);
   }
+}
+
+.wanted-poster-sheet {
+  width: 255px;
+  min-height: 338px;
+  background-color: #f5f5f4;
+  background-image: linear-gradient(180deg, #fafaf9 0%, #e7e5e4 100%);
+  color: #1c1917;
+  border: 2px solid #78716c;
+  border-top: 6px solid #dc2626;
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.82);
+  animation: tractor-paper-feed 1.2s steps(8, end) forwards;
 }
 
 .hologram-seal {
