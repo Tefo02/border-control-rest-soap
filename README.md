@@ -9,7 +9,7 @@ Aplicação web acadêmica e gamificada no estilo *Papers, Please*, desenvolvida
 | Serviço / Protocolo | Papel na Aplicação | Documentação Oficial | Endpoint de Produção / WSDL | Backup Local no Repositório |
 | :--- | :--- | :--- | :--- | :--- |
 | **CountryInfoService (SOAP 1.1 / XML)** | **Mainframe Governamental (1999):** Fonte canônica e imutável de dados internacionais (Capital, Moeda, Código DDI, Continente). | [Oorsprong CountryInfo Docs](http://webservices.oorsprong.org/websamples.countryinfo/CountryInfoService.wso) | [CountryInfoService.wso?WSDL](http://webservices.oorsprong.org/websamples.countryinfo/CountryInfoService.wso?WSDL) | [`contracts/CountryInfoService.wsdl`](./contracts/CountryInfoService.wsdl) |
-| **REST Countries v3.1 (RESTful / JSON)** | **Terminal do Viajante (2026):** Passaporte eletrônico dinâmico com biometria, nomes, bandeiras e moeda declarada. | [REST Countries Documentation](https://gitlab.com/restcountries/restcountries) | `https://restcountries.com/v3.1/alpha/{code}` | N/A (JSON Schema Dinâmico) |
+| **Countries API (Cloudflare Workers) (RESTful / JSON)** | **Terminal do Viajante (2026):** Passaporte eletrônico dinâmico com biometria, nomes, bandeiras e moeda declarada. | [REST Countries Documentation](https://gitlab.com/restcountries/restcountries) | `https://countries-api.davegarvey.workers.dev/countries/{code}` | N/A (JSON Schema Dinâmico) |
 
 ---
 
