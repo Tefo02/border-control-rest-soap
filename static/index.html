@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Border Control: 1999 vs. 2026 (Web Services Inspector)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.14.3/dist/cdn.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    .font-mono-crt { font-family: 'Fira Code', monospace; }
+    .crt-screen {
+      background: radial-gradient(circle, #0a1f0d 0%, #030804 100%);
+      color: #33ff66;
+      box-shadow: inset 0 0 40px rgba(0, 255, 102, 0.15), 0 0 20px rgba(0, 0, 0, 0.8);
+      position: relative;
+    }
+    .crt-screen::before {
+      content: " ";
+      display: block;
+      position: absolute;
+      top: 0; left: 0; bottom: 0; right: 0;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.35) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.04), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.04));
+      z-index: 2;
+      background-size: 100% 3px, 4px 100%;
+      pointer-events: none;
+    }
+    .stamp-approved {
+      border: 5px solid #16a34a;
+      color: #16a34a;
+      transform: rotate(-12deg) scale(1);
+      animation: stamp-pop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .stamp-denied {
+      border: 5px solid #dc2626;
+      color: #dc2626;
+      transform: rotate(10deg) scale(1);
+      animation: stamp-pop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    @keyframes stamp-pop {
+      0% { transform: scale(3) rotate(-25deg); opacity: 0; }
+      100% { transform: scale(1) rotate(-12deg); opacity: 0.95; }
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col" x-data="borderControlApp()" x-init="initAudio(); loadNextPassenger()">
+
+  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur px-6 py-3 flex items-center justify-between">
+    <div class="flex items-center space-x-3">
+      <div class="w-3.5 h-3.5 rounded-full bg-emerald-500 animate-pulse"></div>
+      <h1 class="font-bold text-lg tracking-wide uppercase text-slate-200">
+        Border Control <span class="text-xs px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 font-mono">1999 vs. 2026</span>
+      </h1>
+      <span class="text-xs text-slate-500 hidden md:inline">SOAP (WSDL XML) vs. REST (JSON) Protocol Inspector</span>
+    </div>
+
+    <div class="flex items-center space-x-6 text-sm">
+      <div class="flex items-center space-x-2">
+        <span class="text-slate-400">Score:</span>
+        <span class="font-bold text-emerald-400 text-base" x-text="score">0</span>
+      </div>
+      <div class="flex items-center space-x-2">
+        <span class="text-slate-400">Inspections:</span>
+        <span class="font-semibold text-slate-200" x-text="inspectionsCount">0</span>
+      </div>
+      <div class="flex items-center space-x-2">
+        <span class="text-slate-400">Accuracy:</span>
+        <span class="font-semibold text-sky-400" x-text="accuracyRate + '%'">100%</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-7xl mx-auto w-full">
+
+    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col justify-between shadow-xl relative overflow-hidden">
+      <div class="absolute top-0 right-0 px-4 py-1.5 bg-blue-950/80 border-b border-l border-blue-800/60 rounded-bl-xl text-blue-400 text-xs font-semibold flex items-center space-x-1.5">
+        <span class="w-2 h-2 rounded-full bg-blue-400"></span>
+        <span>TERMINAL 2026 &bull; REST API (JSON)</span>
+      </div>
+
+      <div>
+        <div class="text-xs text-slate-400 font-medium mb-1">DIGITAL TRAVELER PASSPORT</div>
+        <div class="text-xl font-bold text-white mb-4" x-text="passenger ? passenger.passenger_name : 'Awaiting Traveler...'"></div>
+
+        <template x-if="passenger">
+          <div class="space-y-4">
+            <div class="flex items-center space-x-4 bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
+              <img :src="passenger.avatar_url" alt="Avatar" class="w-16 h-16 rounded-xl bg-slate-800 border border-slate-700 p-1">
+              <div class="flex-1">
+                <div class="flex items-center space-x-2">
+                  <img :src="passenger.flag_url" alt="Flag" class="w-7 h-5 object-cover rounded shadow">
+                  <span class="text-lg font-bold text-slate-100" x-text="passenger.declared_country_name"></span>
+                  <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-mono" x-text="passenger.declared_iso_code"></span>
+                </div>
+                <div class="text-xs text-slate-400 mt-1">Biometric ID: <span class="font-mono text-slate-300" x-text="passenger.inspection_id.substring(0, 13)"></span></div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-3">
+              <div class="bg-slate-950/40 p-3 rounded-xl border border-slate-800">
+                <div class="text-[11px] text-slate-400 uppercase font-semibold">Declared Capital</div>
+                <div class="font-semibold text-slate-200 mt-0.5 truncate" x-text="passenger.declared_capital"></div>
+              </div>
+              <div class="bg-slate-950/40 p-3 rounded-xl border border-slate-800">
+                <div class="text-[11px] text-slate-400 uppercase font-semibold">Declared Currency</div>
+                <div class="font-semibold text-slate-200 mt-0.5 truncate" x-text="passenger.declared_currency_code"></div>
+              </div>
+              <div class="bg-slate-950/40 p-3 rounded-xl border border-slate-800">
+                <div class="text-[11px] text-slate-400 uppercase font-semibold">Phone Code (DDI)</div>
+                <div class="font-semibold text-slate-200 mt-0.5" x-text="'+' + passenger.declared_phone_code"></div>
+              </div>
+            </div>
+
+            <div class="p-3 bg-blue-950/30 rounded-xl border border-blue-900/40 flex items-center justify-between text-xs text-blue-300">
+              <span>REST Source: <code class="font-mono text-[11px]">restcountries.com/v3.1/alpha</code></span>
+              <span class="font-mono" x-text="passenger.rest_telemetry.latency_ms + ' ms | ' + passenger.rest_telemetry.bytes_received + ' B'"></span>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <div class="relative mt-8 pt-4 border-t border-slate-800/80 flex items-center justify-between">
+        <template x-if="verdictStamp">
+          <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+            <div :class="verdictStamp === 'APPROVE' ? 'stamp-approved' : 'stamp-denied'" class="px-6 py-2 text-2xl font-black uppercase tracking-widest bg-slate-950/80 rounded-lg">
+              <span x-text="verdictStamp === 'APPROVE' ? 'ADMITTED' : 'DETAINED'"></span>
+            </div>
+          </div>
+        </template>
+
+        <div class="flex items-center space-x-3 w-full">
+          <button @click="submitVerdict('APPROVE')" :disabled="isSubmitting || verdictStamp !== null" class="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-600 text-white font-bold rounded-xl transition shadow-lg shadow-emerald-950 flex items-center justify-center space-x-2">
+            <span>&#10003;</span>
+            <span>APPROVE ENTRY</span>
+          </button>
+          <button @click="submitVerdict('DENY')" :disabled="isSubmitting || verdictStamp !== null" class="flex-1 py-3 bg-rose-600 hover:bg-rose-500 disabled:bg-slate-800 disabled:text-slate-600 text-white font-bold rounded-xl transition shadow-lg shadow-rose-950 flex items-center justify-center space-x-2">
+            <span>&#10007;</span>
+            <span>DENY ENTRY</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section class="crt-screen rounded-2xl p-6 border-2 border-emerald-950 flex flex-col justify-between relative overflow-hidden font-mono-crt">
+      <div class="absolute top-0 right-0 px-4 py-1.5 bg-emerald-950/90 border-b border-l border-emerald-700/60 rounded-bl-xl text-emerald-400 text-xs font-bold tracking-wider z-10">
+        MAINFRAME 1999 &bull; SOAP 1.1 WSDL
+      </div>
+
+      <div class="relative z-10">
+        <div class="text-xs text-emerald-600 tracking-widest uppercase mb-1">GOVERNMENT CUSTOMS MAINFRAME // OS/390</div>
+        <div class="text-sm font-bold text-emerald-400 mb-4">&gt; CONNECTED TO OORSPRONG COUNTRYINFO SERVICE</div>
+
+        <div class="bg-black/60 p-4 rounded-xl border border-emerald-800/80 mb-4 space-y-3">
+          <div class="flex items-center space-x-2">
+            <span class="text-emerald-500 text-xs">QUERY ISO CODE:</span>
+            <input type="text" x-model="queryIso" maxlength="3" class="bg-black text-emerald-300 border border-emerald-600 rounded px-2 py-1 text-sm uppercase w-20 font-bold focus:outline-none focus:border-emerald-400">
+            <button @click="queryMainframe()" :disabled="isQuerying" class="px-4 py-1.5 bg-emerald-900/80 hover:bg-emerald-800 border border-emerald-500 text-emerald-200 text-xs font-bold rounded transition">
+              <span x-text="isQuerying ? 'EXECUTING SOAP...' : 'INSPECT RECORD'"></span>
+            </button>
+          </div>
+
+          <div class="text-xs text-emerald-600">
+            SOAP Action: <span class="text-emerald-300">FullCountryInfo</span> &bull; Contract: <span class="text-emerald-300">CountryInfoService.wso?WSDL</span>
+          </div>
+        </div>
+
+        <div class="bg-black/80 p-4 rounded-xl border border-emerald-900 min-h-[170px] text-xs space-y-2">
+          <template x-if="!mainframeData && !isQuerying">
+            <div class="text-emerald-700 italic py-8 text-center">&gt; Ready. Query the mainframe to pull canonical government data via WSDL contract...</div>
+          </template>
+
+          <template x-if="isQuerying">
+            <div class="text-emerald-400 animate-pulse py-8 text-center">&gt; TRANSMITTING ENVELOPE XML TO SERVER VIA HTTP POST...</div>
+          </template>
+
+          <template x-if="mainframeData && mainframeData.canonical_record">
+            <div class="space-y-2 text-emerald-300">
+              <div class="border-b border-emerald-900 pb-1 text-emerald-400 font-bold flex justify-between">
+                <span>&gt; CANONICAL RECORD VERIFIED</span>
+                <span x-text="'ISO: ' + mainframeData.canonical_record.iso_code"></span>
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <div>Country Name: <span class="text-emerald-100 font-bold" x-text="mainframeData.canonical_record.name"></span></div>
+                <div>Capital City: <span class="text-emerald-100 font-bold" x-text="mainframeData.canonical_record.capital"></span></div>
+                <div>Currency Code: <span class="text-emerald-100 font-bold" x-text="mainframeData.canonical_record.currency_code"></span></div>
+                <div>Phone Code: <span class="text-emerald-100 font-bold" x-text="'+' + mainframeData.canonical_record.phone_code"></span></div>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <div class="relative z-10 pt-4 border-t border-emerald-950 flex items-center justify-between text-xs text-emerald-500">
+        <span>STATUS: <span class="text-emerald-300 font-bold">READY</span></span>
+        <span x-text="mainframeData ? (mainframeData.soap_telemetry.latency_ms + ' ms | ' + mainframeData.soap_telemetry.bytes_received + ' B') : 'AWAITING DISPATCH'"></span>
+      </div>
+    </section>
+
+  </main>
+
+  <section class="max-w-7xl mx-auto w-full px-4 lg:px-6 pb-6">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+        <div>
+          <h2 class="text-base font-bold text-slate-200">Real-Time Protocol Telemetry &amp; Payload Inspector</h2>
+          <p class="text-xs text-slate-400">Side-by-side technical measurement: SOAP Envelope vs. REST JSON Document</p>
+        </div>
+
+        <div class="flex space-x-2">
+          <button @click="activeTab = 'comparison'" :class="activeTab === 'comparison' ? 'bg-slate-800 text-white' : 'text-slate-400 hover:text-slate-200'" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition">Metrics Comparison</button>
+          <button @click="activeTab = 'soap_request'" :class="activeTab === 'soap_request' ? 'bg-slate-800 text-white' : 'text-slate-400 hover:text-slate-200'" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition">SOAP Request XML</button>
+          <button @click="activeTab = 'soap_response'" :class="activeTab === 'soap_response' ? 'bg-slate-800 text-white' : 'text-slate-400 hover:text-slate-200'" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition">SOAP Response XML</button>
+          <button @click="activeTab = 'rest_response'" :class="activeTab === 'rest_response' ? 'bg-slate-800 text-white' : 'text-slate-400 hover:text-slate-200'" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition">REST Response JSON</button>
+        </div>
+      </div>
+
+      <div x-show="activeTab === 'comparison'" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+          <div class="text-xs text-slate-400 font-medium">Latency Round-Trip</div>
+          <div class="flex items-baseline space-x-3 mt-2">
+            <div>
+              <span class="text-xs text-blue-400 font-mono">REST:</span>
+              <span class="text-lg font-bold text-white font-mono" x-text="passenger ? passenger.rest_telemetry.latency_ms + 'ms' : '-'"></span>
+            </div>
+            <div class="text-slate-600">vs</div>
+            <div>
+              <span class="text-xs text-emerald-400 font-mono">SOAP:</span>
+              <span class="text-lg font-bold text-white font-mono" x-text="mainframeData ? mainframeData.soap_telemetry.latency_ms + 'ms' : '-'"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+          <div class="text-xs text-slate-400 font-medium">Payload Received (Bytes)</div>
+          <div class="flex items-baseline space-x-3 mt-2">
+            <div>
+              <span class="text-xs text-blue-400 font-mono">REST:</span>
+              <span class="text-lg font-bold text-white font-mono" x-text="passenger ? passenger.rest_telemetry.bytes_received + ' B' : '-'"></span>
+            </div>
+            <div class="text-slate-600">vs</div>
+            <div>
+              <span class="text-xs text-emerald-400 font-mono">SOAP:</span>
+              <span class="text-lg font-bold text-white font-mono" x-text="mainframeData ? mainframeData.soap_telemetry.bytes_received + ' B' : '-'"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+          <div class="text-xs text-slate-400 font-medium">XML Envelope Serialization Overhead</div>
+          <div class="text-lg font-bold text-amber-400 font-mono mt-2" x-text="calculateOverhead()">-</div>
+          <div class="text-[11px] text-slate-500 mt-1">Due to XML closing tags, namespaces and SOAP headers</div>
+        </div>
+      </div>
+
+      <div x-show="activeTab === 'soap_request'" class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+        <pre><code class="language-xml font-mono text-xs" x-text="mainframeData ? mainframeData.soap_telemetry.raw_request : 'Execute a mainframe query to capture real sent XML...'"></code></pre>
+      </div>
+
+      <div x-show="activeTab === 'soap_response'" class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+        <pre><code class="language-xml font-mono text-xs" x-text="mainframeData ? mainframeData.soap_telemetry.raw_response : 'Execute a mainframe query to capture real returned XML...'"></code></pre>
+      </div>
+
+      <div x-show="activeTab === 'rest_response'" class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+        <pre><code class="language-json font-mono text-xs" x-text="passenger ? formatJson(passenger.rest_telemetry.raw_response) : 'Awaiting REST response...'"></code></pre>
+      </div>
+    </div>
+  </section>
+
+  <template x-if="verdictModal">
+    <div class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+        <div class="flex items-center space-x-3">
+          <div :class="verdictModal.is_correct ? 'bg-emerald-950 border-emerald-600 text-emerald-400' : 'bg-rose-950 border-rose-600 text-rose-400'" class="w-12 h-12 rounded-xl border flex items-center justify-center text-2xl font-bold">
+            <span x-text="verdictModal.is_correct ? '&#10003;' : '&#10007;'"></span>
+          </div>
+          <div>
+            <h3 class="font-bold text-lg text-white" x-text="verdictModal.is_correct ? 'VERDICT ACCURATE (+100 PTS)' : 'VERDICT FAILED (-50 PTS)'"></h3>
+            <div class="text-xs text-slate-400" x-text="'Decision: ' + verdictModal.decision + ' | State: ' + (verdictModal.is_fraud ? 'FRAUDULENT' : 'LEGITIMATE')"></div>
+          </div>
+        </div>
+
+        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 text-sm text-slate-300" x-text="verdictModal.technical_explanation"></div>
+
+        <button @click="dismissModalAndNext()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 font-bold rounded-xl text-white transition shadow-lg shadow-emerald-950">
+          NEXT TRAVELER IN LINE &rarr;
+        </button>
+      </div>
+    </div>
+  </template>
+
+  <script>
+    function borderControlApp() {
+      return {
+        passenger: null,
+        mainframeData: null,
+        queryIso: '',
+        activeTab: 'comparison',
+        score: 0,
+        inspectionsCount: 0,
+        correctCount: 0,
+        accuracyRate: 100,
+        isQuerying: false,
+        isSubmitting: false,
+        verdictStamp: null,
+        verdictModal: null,
+        audioContext: null,
+
+        initAudio() {
+          try {
+            window.AudioContext = window.AudioContext || window.webkitAudioContext;
+            this.audioContext = new AudioContext();
+          } catch (e) {}
+        },
+
+        playBip(freq = 600, duration = 0.08) {
+          if (!this.audioContext) return;
+          if (this.audioContext.state === 'suspended') this.audioContext.resume();
+          const osc = this.audioContext.createOscillator();
+          const gain = this.audioContext.createGain();
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(freq, this.audioContext.currentTime);
+          gain.gain.setValueAtTime(0.08, this.audioContext.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + duration);
+          osc.connect(gain);
+          gain.connect(this.audioContext.destination);
+          osc.start();
+          osc.stop(this.audioContext.currentTime + duration);
+        },
+
+        playStampSound() {
+          if (!this.audioContext) return;
+          if (this.audioContext.state === 'suspended') this.audioContext.resume();
+          const osc = this.audioContext.createOscillator();
+          const gain = this.audioContext.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(140, this.audioContext.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(30, this.audioContext.currentTime + 0.18);
+          gain.gain.setValueAtTime(0.25, this.audioContext.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.18);
+          osc.connect(gain);
+          gain.connect(this.audioContext.destination);
+          osc.start();
+          osc.stop(this.audioContext.currentTime + 0.18);
+        },
+
+        async loadNextPassenger() {
+          this.verdictStamp = null;
+          this.mainframeData = null;
+          try {
+            const res = await fetch('/api/inspections/next');
+            this.passenger = await res.json();
+            this.queryIso = this.passenger.declared_iso_code;
+            this.playBip(440, 0.05);
+            this.$nextTick(() => hljs.highlightAll());
+          } catch (err) {}
+        },
+
+        async queryMainframe() {
+          if (!this.passenger || this.isQuerying) return;
+          this.isQuerying = true;
+          this.playBip(880, 0.06);
+          try {
+            const res = await fetch(`/api/inspections/${this.passenger.inspection_id}/mainframe-query`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ query_iso_code: this.queryIso })
+            });
+            this.mainframeData = await res.json();
+            this.playBip(1200, 0.08);
+            this.$nextTick(() => hljs.highlightAll());
+          } catch (err) {
+          } finally {
+            this.isQuerying = false;
+          }
+        },
+
+        async submitVerdict(decision) {
+          if (!this.passenger || this.isSubmitting) return;
+          this.isSubmitting = true;
+          this.verdictStamp = decision;
+          this.playStampSound();
+
+          try {
+            const res = await fetch(`/api/inspections/${this.passenger.inspection_id}/verdict`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ decision })
+            });
+            const result = await res.json();
+            this.score += result.score_delta;
+            this.inspectionsCount++;
+            if (result.is_correct) this.correctCount++;
+            this.accuracyRate = Math.round((this.correctCount / this.inspectionsCount) * 100);
+
+            setTimeout(() => {
+              this.verdictModal = result;
+              this.playBip(result.is_correct ? 800 : 250, 0.2);
+            }, 600);
+          } catch (err) {
+          } finally {
+            this.isSubmitting = false;
+          }
+        },
+
+        dismissModalAndNext() {
+          this.verdictModal = null;
+          this.loadNextPassenger();
+        },
+
+        calculateOverhead() {
+          if (!this.passenger || !this.mainframeData) return 'Awaiting Both Calls';
+          const restBytes = this.passenger.rest_telemetry.bytes_received;
+          const soapBytes = this.mainframeData.soap_telemetry.bytes_received;
+          if (!restBytes || !soapBytes) return '-';
+          const diff = ((soapBytes - restBytes) / restBytes) * 100;
+          return `${diff > 0 ? '+' : ''}${diff.toFixed(1)}% XML Overhead`;
+        },
+
+        formatJson(raw) {
+          try {
+            return JSON.stringify(JSON.parse(raw), null, 2);
+          } catch (e) {
+            return raw;
+          }
+        }
+      }
+    }
+  </script>
+</body>
+</html>
