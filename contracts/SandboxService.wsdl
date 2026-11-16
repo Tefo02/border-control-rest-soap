@@ -1,0 +1,482 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions name="SandboxService"
+  targetNamespace="http://demo.totalshiftleft.ai/soap"
+  xmlns="http://schemas.xmlsoap.org/wsdl/"
+  xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+  xmlns:tns="http://demo.totalshiftleft.ai/soap"
+  xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+
+  <documentation>
+    API Learning Sandbox — SOAP 1.1 Service.
+    Endpoint: https://demo.totalshiftleft.ai/soap
+    All data is session-scoped and auto-expires after 30 minutes of inactivity.
+    15 operations across Users, Products, and Orders.
+    Import this WSDL into SoapUI or Postman to auto-generate all requests.
+  </documentation>
+
+  <types>
+    <xsd:schema targetNamespace="http://demo.totalshiftleft.ai/soap">
+
+      <!-- ── Shared complex types ─────────────────────────────────────── -->
+
+      <xsd:complexType name="UserType">
+        <xsd:annotation><xsd:documentation>A sandbox user record.</xsd:documentation></xsd:annotation>
+        <xsd:sequence>
+          <xsd:element name="id"         type="xsd:string"  minOccurs="1" maxOccurs="1">
+            <xsd:annotation><xsd:documentation>Unique UUID assigned on creation.</xsd:documentation></xsd:annotation>
+          </xsd:element>
+          <xsd:element name="name"       type="xsd:string"  minOccurs="1" maxOccurs="1">
+            <xsd:annotation><xsd:documentation>Full name.</xsd:documentation></xsd:annotation>
+          </xsd:element>
+          <xsd:element name="email"      type="xsd:string"  minOccurs="1" maxOccurs="1">
+            <xsd:annotation><xsd:documentation>Email address (unique per session).</xsd:documentation></xsd:annotation>
+          </xsd:element>
+          <xsd:element name="role"       type="xsd:string"  minOccurs="0" maxOccurs="1">
+            <xsd:annotation><xsd:documentation>User role: user | admin | moderator.</xsd:documentation></xsd:annotation>
+          </xsd:element>
+          <xsd:element name="age"        type="xsd:int"     minOccurs="0" maxOccurs="1">
+            <xsd:annotation><xsd:documentation>Age in years (0–150).</xsd:documentation></xsd:annotation>
+          </xsd:element>
+          <xsd:element name="created_at" type="xsd:string"  minOccurs="0" maxOccurs="1">
+            <xsd:annotation><xsd:documentation>ISO 8601 creation timestamp.</xsd:documentation></xsd:annotation>
+          </xsd:element>
+          <xsd:element name="updated_at" type="xsd:string"  minOccurs="0" maxOccurs="1">
+            <xsd:annotation><xsd:documentation>ISO 8601 last-updated timestamp.</xsd:documentation></xsd:annotation>
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="UserArray">
+        <xsd:annotation><xsd:documentation>A list of UserType elements.</xsd:documentation></xsd:annotation>
+        <xsd:sequence>
+          <xsd:element name="user" type="tns:UserType" minOccurs="0" maxOccurs="unbounded"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="ProductType">
+        <xsd:annotation><xsd:documentation>A catalogue product.</xsd:documentation></xsd:annotation>
+        <xsd:sequence>
+          <xsd:element name="id"          type="xsd:string"  minOccurs="1" maxOccurs="1">
+            <xsd:annotation><xsd:documentation>Unique UUID assigned on creation.</xsd:documentation></xsd:annotation>
+          </xsd:element>
+          <xsd:element name="name"        type="xsd:string"  minOccurs="1" maxOccurs="1">
+            <xsd:annotation><xsd:documentation>Product name.</xsd:documentation></xsd:annotation>
+          </xsd:element>
+          <xsd:element name="price"       type="xsd:decimal" minOccurs="1" maxOccurs="1">
+            <xsd:annotation><xsd:documentation>Unit price (must be greater than 0).</xsd:documentation></xsd:annotation>
+          </xsd:element>
+          <xsd:element name="description" type="xsd:string"  minOccurs="0" maxOccurs="1">
+            <xsd:annotation><xsd:documentation>Product description (max 500 chars).</xsd:documentation></xsd:annotation>
+          </xsd:element>
+          <xsd:element name="stock"       type="xsd:int"     minOccurs="0" maxOccurs="1">
+            <xsd:annotation><xsd:documentation>Units available in stock.</xsd:documentation></xsd:annotation>
+          </xsd:element>
+          <xsd:element name="category"    type="xsd:string"  minOccurs="0" maxOccurs="1">
+            <xsd:annotation><xsd:documentation>Product category (e.g. electronics, general).</xsd:documentation></xsd:annotation>
+          </xsd:element>
+          <xsd:element name="created_at"  type="xsd:string"  minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="updated_at"  type="xsd:string"  minOccurs="0" maxOccurs="1"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="ProductArray">
+        <xsd:annotation><xsd:documentation>A list of ProductType elements.</xsd:documentation></xsd:annotation>
+        <xsd:sequence>
+          <xsd:element name="product" type="tns:ProductType" minOccurs="0" maxOccurs="unbounded"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="OrderType">
+        <xsd:annotation><xsd:documentation>An order linking a user to a product.</xsd:documentation></xsd:annotation>
+        <xsd:sequence>
+          <xsd:element name="id"         type="xsd:string"  minOccurs="1" maxOccurs="1">
+            <xsd:annotation><xsd:documentation>Unique UUID assigned on creation.</xsd:documentation></xsd:annotation>
+          </xsd:element>
+          <xsd:element name="user_id"    type="xsd:string"  minOccurs="0" maxOccurs="1">
+            <xsd:annotation><xsd:documentation>UUID of the user who placed the order.</xsd:documentation></xsd:annotation>
+          </xsd:element>
+          <xsd:element name="product_id" type="xsd:string"  minOccurs="0" maxOccurs="1">
+            <xsd:annotation><xsd:documentation>UUID of the ordered product.</xsd:documentation></xsd:annotation>
+          </xsd:element>
+          <xsd:element name="quantity"   type="xsd:int"     minOccurs="0" maxOccurs="1">
+            <xsd:annotation><xsd:documentation>Quantity ordered (minimum 1).</xsd:documentation></xsd:annotation>
+          </xsd:element>
+          <xsd:element name="status"     type="xsd:string"  minOccurs="1" maxOccurs="1">
+            <xsd:annotation><xsd:documentation>Order status: pending | processing | completed | cancelled.</xsd:documentation></xsd:annotation>
+          </xsd:element>
+          <xsd:element name="notes"      type="xsd:string"  minOccurs="0" maxOccurs="1">
+            <xsd:annotation><xsd:documentation>Optional free-text notes (max 500 chars).</xsd:documentation></xsd:annotation>
+          </xsd:element>
+          <xsd:element name="created_at" type="xsd:string"  minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="updated_at" type="xsd:string"  minOccurs="0" maxOccurs="1"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <xsd:complexType name="OrderArray">
+        <xsd:annotation><xsd:documentation>A list of OrderType elements.</xsd:documentation></xsd:annotation>
+        <xsd:sequence>
+          <xsd:element name="order" type="tns:OrderType" minOccurs="0" maxOccurs="unbounded"/>
+        </xsd:sequence>
+      </xsd:complexType>
+
+      <!-- ── User operation elements ──────────────────────────────────── -->
+
+      <xsd:element name="CreateUserRequest">
+        <xsd:annotation><xsd:documentation>Create a new user. name and email are required.</xsd:documentation></xsd:annotation>
+        <xsd:complexType><xsd:sequence>
+          <xsd:element name="name"  type="xsd:string" minOccurs="1"/>
+          <xsd:element name="email" type="xsd:string" minOccurs="1"/>
+          <xsd:element name="role"  type="xsd:string" minOccurs="0"/>
+          <xsd:element name="age"   type="xsd:int"    minOccurs="0"/>
+        </xsd:sequence></xsd:complexType>
+      </xsd:element>
+      <xsd:element name="CreateUserResponse">
+        <xsd:annotation><xsd:documentation>Returns the newly created user record.</xsd:documentation></xsd:annotation>
+        <xsd:complexType><xsd:sequence>
+          <xsd:element name="user" type="tns:UserType"/>
+        </xsd:sequence></xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="GetUsersRequest">
+        <xsd:annotation><xsd:documentation>List users with optional pagination.</xsd:documentation></xsd:annotation>
+        <xsd:complexType><xsd:sequence>
+          <xsd:element name="page"  type="xsd:int" minOccurs="0"/>
+          <xsd:element name="limit" type="xsd:int" minOccurs="0"/>
+        </xsd:sequence></xsd:complexType>
+      </xsd:element>
+      <xsd:element name="GetUsersResponse">
+        <xsd:annotation><xsd:documentation>Returns an array of users and the total count.</xsd:documentation></xsd:annotation>
+        <xsd:complexType><xsd:sequence>
+          <xsd:element name="users" type="tns:UserArray"/>
+          <xsd:element name="total" type="xsd:int"/>
+        </xsd:sequence></xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="GetUserRequest">
+        <xsd:annotation><xsd:documentation>Fetch a single user by UUID.</xsd:documentation></xsd:annotation>
+        <xsd:complexType><xsd:sequence>
+          <xsd:element name="id" type="xsd:string" minOccurs="1"/>
+        </xsd:sequence></xsd:complexType>
+      </xsd:element>
+      <xsd:element name="GetUserResponse">
+        <xsd:annotation><xsd:documentation>Returns the matching user record.</xsd:documentation></xsd:annotation>
+        <xsd:complexType><xsd:sequence>
+          <xsd:element name="user" type="tns:UserType"/>
+        </xsd:sequence></xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="UpdateUserRequest">
+        <xsd:annotation><xsd:documentation>Partially update a user. id is required; all other fields are optional.</xsd:documentation></xsd:annotation>
+        <xsd:complexType><xsd:sequence>
+          <xsd:element name="id"    type="xsd:string" minOccurs="1"/>
+          <xsd:element name="name"  type="xsd:string" minOccurs="0"/>
+          <xsd:element name="email" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="role"  type="xsd:string" minOccurs="0"/>
+          <xsd:element name="age"   type="xsd:int"    minOccurs="0"/>
+        </xsd:sequence></xsd:complexType>
+      </xsd:element>
+      <xsd:element name="UpdateUserResponse">
+        <xsd:annotation><xsd:documentation>Returns the updated user record.</xsd:documentation></xsd:annotation>
+        <xsd:complexType><xsd:sequence>
+          <xsd:element name="user" type="tns:UserType"/>
+        </xsd:sequence></xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="DeleteUserRequest">
+        <xsd:annotation><xsd:documentation>Delete a user by UUID.</xsd:documentation></xsd:annotation>
+        <xsd:complexType><xsd:sequence>
+          <xsd:element name="id" type="xsd:string" minOccurs="1"/>
+        </xsd:sequence></xsd:complexType>
+      </xsd:element>
+      <xsd:element name="DeleteUserResponse">
+        <xsd:annotation><xsd:documentation>Returns true if the user was deleted successfully.</xsd:documentation></xsd:annotation>
+        <xsd:complexType><xsd:sequence>
+          <xsd:element name="success" type="xsd:boolean"/>
+        </xsd:sequence></xsd:complexType>
+      </xsd:element>
+
+      <!-- ── Product operation elements ──────────────────────────────── -->
+
+      <xsd:element name="CreateProductRequest">
+        <xsd:annotation><xsd:documentation>Create a new product. name and price are required.</xsd:documentation></xsd:annotation>
+        <xsd:complexType><xsd:sequence>
+          <xsd:element name="name"        type="xsd:string"  minOccurs="1"/>
+          <xsd:element name="price"       type="xsd:decimal" minOccurs="1"/>
+          <xsd:element name="description" type="xsd:string"  minOccurs="0"/>
+          <xsd:element name="stock"       type="xsd:int"     minOccurs="0"/>
+          <xsd:element name="category"    type="xsd:string"  minOccurs="0"/>
+        </xsd:sequence></xsd:complexType>
+      </xsd:element>
+      <xsd:element name="CreateProductResponse">
+        <xsd:annotation><xsd:documentation>Returns the newly created product record.</xsd:documentation></xsd:annotation>
+        <xsd:complexType><xsd:sequence>
+          <xsd:element name="product" type="tns:ProductType"/>
+        </xsd:sequence></xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="GetProductsRequest">
+        <xsd:annotation><xsd:documentation>List products with optional pagination.</xsd:documentation></xsd:annotation>
+        <xsd:complexType><xsd:sequence>
+          <xsd:element name="page"  type="xsd:int" minOccurs="0"/>
+          <xsd:element name="limit" type="xsd:int" minOccurs="0"/>
+        </xsd:sequence></xsd:complexType>
+      </xsd:element>
+      <xsd:element name="GetProductsResponse">
+        <xsd:annotation><xsd:documentation>Returns an array of products and the total count.</xsd:documentation></xsd:annotation>
+        <xsd:complexType><xsd:sequence>
+          <xsd:element name="products" type="tns:ProductArray"/>
+          <xsd:element name="total"    type="xsd:int"/>
+        </xsd:sequence></xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="GetProductRequest">
+        <xsd:annotation><xsd:documentation>Fetch a single product by UUID.</xsd:documentation></xsd:annotation>
+        <xsd:complexType><xsd:sequence>
+          <xsd:element name="id" type="xsd:string" minOccurs="1"/>
+        </xsd:sequence></xsd:complexType>
+      </xsd:element>
+      <xsd:element name="GetProductResponse">
+        <xsd:annotation><xsd:documentation>Returns the matching product record.</xsd:documentation></xsd:annotation>
+        <xsd:complexType><xsd:sequence>
+          <xsd:element name="product" type="tns:ProductType"/>
+        </xsd:sequence></xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="UpdateProductRequest">
+        <xsd:annotation><xsd:documentation>Partially update a product. id is required; all other fields are optional.</xsd:documentation></xsd:annotation>
+        <xsd:complexType><xsd:sequence>
+          <xsd:element name="id"          type="xsd:string"  minOccurs="1"/>
+          <xsd:element name="name"        type="xsd:string"  minOccurs="0"/>
+          <xsd:element name="price"       type="xsd:decimal" minOccurs="0"/>
+          <xsd:element name="description" type="xsd:string"  minOccurs="0"/>
+          <xsd:element name="stock"       type="xsd:int"     minOccurs="0"/>
+          <xsd:element name="category"    type="xsd:string"  minOccurs="0"/>
+        </xsd:sequence></xsd:complexType>
+      </xsd:element>
+      <xsd:element name="UpdateProductResponse">
+        <xsd:annotation><xsd:documentation>Returns the updated product record.</xsd:documentation></xsd:annotation>
+        <xsd:complexType><xsd:sequence>
+          <xsd:element name="product" type="tns:ProductType"/>
+        </xsd:sequence></xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="DeleteProductRequest">
+        <xsd:annotation><xsd:documentation>Delete a product by UUID.</xsd:documentation></xsd:annotation>
+        <xsd:complexType><xsd:sequence>
+          <xsd:element name="id" type="xsd:string" minOccurs="1"/>
+        </xsd:sequence></xsd:complexType>
+      </xsd:element>
+      <xsd:element name="DeleteProductResponse">
+        <xsd:annotation><xsd:documentation>Returns true if the product was deleted successfully.</xsd:documentation></xsd:annotation>
+        <xsd:complexType><xsd:sequence>
+          <xsd:element name="success" type="xsd:boolean"/>
+        </xsd:sequence></xsd:complexType>
+      </xsd:element>
+
+      <!-- ── Order operation elements ────────────────────────────────── -->
+
+      <xsd:element name="CreateOrderRequest">
+        <xsd:annotation><xsd:documentation>Create a new order. All fields are optional; status defaults to pending, quantity to 1.</xsd:documentation></xsd:annotation>
+        <xsd:complexType><xsd:sequence>
+          <xsd:element name="user_id"    type="xsd:string" minOccurs="0"/>
+          <xsd:element name="product_id" type="xsd:string" minOccurs="0"/>
+          <xsd:element name="quantity"   type="xsd:int"    minOccurs="0"/>
+          <xsd:element name="status"     type="xsd:string" minOccurs="0"/>
+          <xsd:element name="notes"      type="xsd:string" minOccurs="0"/>
+        </xsd:sequence></xsd:complexType>
+      </xsd:element>
+      <xsd:element name="CreateOrderResponse">
+        <xsd:annotation><xsd:documentation>Returns the newly created order record.</xsd:documentation></xsd:annotation>
+        <xsd:complexType><xsd:sequence>
+          <xsd:element name="order" type="tns:OrderType"/>
+        </xsd:sequence></xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="GetOrdersRequest">
+        <xsd:annotation><xsd:documentation>List orders with optional pagination and status filter.</xsd:documentation></xsd:annotation>
+        <xsd:complexType><xsd:sequence>
+          <xsd:element name="page"   type="xsd:int"    minOccurs="0"/>
+          <xsd:element name="limit"  type="xsd:int"    minOccurs="0"/>
+          <xsd:element name="status" type="xsd:string" minOccurs="0"/>
+        </xsd:sequence></xsd:complexType>
+      </xsd:element>
+      <xsd:element name="GetOrdersResponse">
+        <xsd:annotation><xsd:documentation>Returns an array of orders and the total count.</xsd:documentation></xsd:annotation>
+        <xsd:complexType><xsd:sequence>
+          <xsd:element name="orders" type="tns:OrderArray"/>
+          <xsd:element name="total"  type="xsd:int"/>
+        </xsd:sequence></xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="GetOrderRequest">
+        <xsd:annotation><xsd:documentation>Fetch a single order by UUID.</xsd:documentation></xsd:annotation>
+        <xsd:complexType><xsd:sequence>
+          <xsd:element name="id" type="xsd:string" minOccurs="1"/>
+        </xsd:sequence></xsd:complexType>
+      </xsd:element>
+      <xsd:element name="GetOrderResponse">
+        <xsd:annotation><xsd:documentation>Returns the matching order record.</xsd:documentation></xsd:annotation>
+        <xsd:complexType><xsd:sequence>
+          <xsd:element name="order" type="tns:OrderType"/>
+        </xsd:sequence></xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="UpdateOrderRequest">
+        <xsd:annotation><xsd:documentation>Partially update an order. id is required; status, quantity, and notes are optional.</xsd:documentation></xsd:annotation>
+        <xsd:complexType><xsd:sequence>
+          <xsd:element name="id"       type="xsd:string" minOccurs="1"/>
+          <xsd:element name="status"   type="xsd:string" minOccurs="0"/>
+          <xsd:element name="quantity" type="xsd:int"    minOccurs="0"/>
+          <xsd:element name="notes"    type="xsd:string" minOccurs="0"/>
+        </xsd:sequence></xsd:complexType>
+      </xsd:element>
+      <xsd:element name="UpdateOrderResponse">
+        <xsd:annotation><xsd:documentation>Returns the updated order record.</xsd:documentation></xsd:annotation>
+        <xsd:complexType><xsd:sequence>
+          <xsd:element name="order" type="tns:OrderType"/>
+        </xsd:sequence></xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="DeleteOrderRequest">
+        <xsd:annotation><xsd:documentation>Delete an order by UUID.</xsd:documentation></xsd:annotation>
+        <xsd:complexType><xsd:sequence>
+          <xsd:element name="id" type="xsd:string" minOccurs="1"/>
+        </xsd:sequence></xsd:complexType>
+      </xsd:element>
+      <xsd:element name="DeleteOrderResponse">
+        <xsd:annotation><xsd:documentation>Returns true if the order was deleted successfully.</xsd:documentation></xsd:annotation>
+        <xsd:complexType><xsd:sequence>
+          <xsd:element name="success" type="xsd:boolean"/>
+        </xsd:sequence></xsd:complexType>
+      </xsd:element>
+
+    </xsd:schema>
+  </types>
+
+  <!-- ── Messages ─────────────────────────────────────────────────────────── -->
+  <message name="CreateUserIn">    <part name="parameters" element="tns:CreateUserRequest"/>    </message>
+  <message name="CreateUserOut">   <part name="parameters" element="tns:CreateUserResponse"/>   </message>
+  <message name="GetUsersIn">      <part name="parameters" element="tns:GetUsersRequest"/>      </message>
+  <message name="GetUsersOut">     <part name="parameters" element="tns:GetUsersResponse"/>     </message>
+  <message name="GetUserIn">       <part name="parameters" element="tns:GetUserRequest"/>       </message>
+  <message name="GetUserOut">      <part name="parameters" element="tns:GetUserResponse"/>      </message>
+  <message name="UpdateUserIn">    <part name="parameters" element="tns:UpdateUserRequest"/>    </message>
+  <message name="UpdateUserOut">   <part name="parameters" element="tns:UpdateUserResponse"/>   </message>
+  <message name="DeleteUserIn">    <part name="parameters" element="tns:DeleteUserRequest"/>    </message>
+  <message name="DeleteUserOut">   <part name="parameters" element="tns:DeleteUserResponse"/>   </message>
+  <message name="CreateProductIn"> <part name="parameters" element="tns:CreateProductRequest"/> </message>
+  <message name="CreateProductOut"><part name="parameters" element="tns:CreateProductResponse"/></message>
+  <message name="GetProductsIn">   <part name="parameters" element="tns:GetProductsRequest"/>   </message>
+  <message name="GetProductsOut">  <part name="parameters" element="tns:GetProductsResponse"/>  </message>
+  <message name="GetProductIn">    <part name="parameters" element="tns:GetProductRequest"/>    </message>
+  <message name="GetProductOut">   <part name="parameters" element="tns:GetProductResponse"/>   </message>
+  <message name="UpdateProductIn"> <part name="parameters" element="tns:UpdateProductRequest"/> </message>
+  <message name="UpdateProductOut"><part name="parameters" element="tns:UpdateProductResponse"/></message>
+  <message name="DeleteProductIn"> <part name="parameters" element="tns:DeleteProductRequest"/> </message>
+  <message name="DeleteProductOut"><part name="parameters" element="tns:DeleteProductResponse"/></message>
+  <message name="CreateOrderIn">   <part name="parameters" element="tns:CreateOrderRequest"/>   </message>
+  <message name="CreateOrderOut">  <part name="parameters" element="tns:CreateOrderResponse"/>  </message>
+  <message name="GetOrdersIn">     <part name="parameters" element="tns:GetOrdersRequest"/>     </message>
+  <message name="GetOrdersOut">    <part name="parameters" element="tns:GetOrdersResponse"/>    </message>
+  <message name="GetOrderIn">      <part name="parameters" element="tns:GetOrderRequest"/>      </message>
+  <message name="GetOrderOut">     <part name="parameters" element="tns:GetOrderResponse"/>     </message>
+  <message name="UpdateOrderIn">   <part name="parameters" element="tns:UpdateOrderRequest"/>   </message>
+  <message name="UpdateOrderOut">  <part name="parameters" element="tns:UpdateOrderResponse"/>  </message>
+  <message name="DeleteOrderIn">   <part name="parameters" element="tns:DeleteOrderRequest"/>   </message>
+  <message name="DeleteOrderOut">  <part name="parameters" element="tns:DeleteOrderResponse"/>  </message>
+
+  <!-- ── Port type (15 operations) ────────────────────────────────────────── -->
+  <portType name="SandboxPortType">
+    <!-- Users -->
+    <operation name="CreateUser">
+      <documentation>Create a new user. name and email are required. Returns the created UserType.</documentation>
+      <input message="tns:CreateUserIn"/>  <output message="tns:CreateUserOut"/>
+    </operation>
+    <operation name="GetUsers">
+      <documentation>List users with optional page/limit pagination. Returns UserArray and total count.</documentation>
+      <input message="tns:GetUsersIn"/>    <output message="tns:GetUsersOut"/>
+    </operation>
+    <operation name="GetUser">
+      <documentation>Fetch a single user by UUID. Returns UserType or a SOAP fault if not found.</documentation>
+      <input message="tns:GetUserIn"/>     <output message="tns:GetUserOut"/>
+    </operation>
+    <operation name="UpdateUser">
+      <documentation>Partially update a user. id is required; supply only the fields to change. Returns updated UserType.</documentation>
+      <input message="tns:UpdateUserIn"/>  <output message="tns:UpdateUserOut"/>
+    </operation>
+    <operation name="DeleteUser">
+      <documentation>Delete a user by UUID. Returns success=true on deletion.</documentation>
+      <input message="tns:DeleteUserIn"/>  <output message="tns:DeleteUserOut"/>
+    </operation>
+    <!-- Products -->
+    <operation name="CreateProduct">
+      <documentation>Create a new product. name and price are required. Returns the created ProductType.</documentation>
+      <input message="tns:CreateProductIn"/>  <output message="tns:CreateProductOut"/>
+    </operation>
+    <operation name="GetProducts">
+      <documentation>List products with optional page/limit pagination. Returns ProductArray and total count.</documentation>
+      <input message="tns:GetProductsIn"/>    <output message="tns:GetProductsOut"/>
+    </operation>
+    <operation name="GetProduct">
+      <documentation>Fetch a single product by UUID. Returns ProductType or a SOAP fault if not found.</documentation>
+      <input message="tns:GetProductIn"/>     <output message="tns:GetProductOut"/>
+    </operation>
+    <operation name="UpdateProduct">
+      <documentation>Partially update a product. id is required; supply only the fields to change. Returns updated ProductType.</documentation>
+      <input message="tns:UpdateProductIn"/>  <output message="tns:UpdateProductOut"/>
+    </operation>
+    <operation name="DeleteProduct">
+      <documentation>Delete a product by UUID. Returns success=true on deletion.</documentation>
+      <input message="tns:DeleteProductIn"/>  <output message="tns:DeleteProductOut"/>
+    </operation>
+    <!-- Orders -->
+    <operation name="CreateOrder">
+      <documentation>Create a new order. All fields are optional (status defaults to pending, quantity to 1). Returns the created OrderType.</documentation>
+      <input message="tns:CreateOrderIn"/>    <output message="tns:CreateOrderOut"/>
+    </operation>
+    <operation name="GetOrders">
+      <documentation>List orders with optional page/limit/status filter. Returns OrderArray and total count.</documentation>
+      <input message="tns:GetOrdersIn"/>      <output message="tns:GetOrdersOut"/>
+    </operation>
+    <operation name="GetOrder">
+      <documentation>Fetch a single order by UUID. Returns OrderType or a SOAP fault if not found.</documentation>
+      <input message="tns:GetOrderIn"/>       <output message="tns:GetOrderOut"/>
+    </operation>
+    <operation name="UpdateOrder">
+      <documentation>Partially update an order (status, quantity, notes). id is required. Returns updated OrderType.</documentation>
+      <input message="tns:UpdateOrderIn"/>    <output message="tns:UpdateOrderOut"/>
+    </operation>
+    <operation name="DeleteOrder">
+      <documentation>Delete an order by UUID. Returns success=true on deletion.</documentation>
+      <input message="tns:DeleteOrderIn"/>    <output message="tns:DeleteOrderOut"/>
+    </operation>
+  </portType>
+
+  <!-- ── Binding ───────────────────────────────────────────────────────────── -->
+  <binding name="SandboxBinding" type="tns:SandboxPortType">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <operation name="CreateUser">   <soap:operation soapAction="CreateUser"/>   <input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
+    <operation name="GetUsers">     <soap:operation soapAction="GetUsers"/>     <input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
+    <operation name="GetUser">      <soap:operation soapAction="GetUser"/>      <input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
+    <operation name="UpdateUser">   <soap:operation soapAction="UpdateUser"/>   <input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
+    <operation name="DeleteUser">   <soap:operation soapAction="DeleteUser"/>   <input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
+    <operation name="CreateProduct"><soap:operation soapAction="CreateProduct"/><input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
+    <operation name="GetProducts">  <soap:operation soapAction="GetProducts"/>  <input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
+    <operation name="GetProduct">   <soap:operation soapAction="GetProduct"/>   <input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
+    <operation name="UpdateProduct"><soap:operation soapAction="UpdateProduct"/><input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
+    <operation name="DeleteProduct"><soap:operation soapAction="DeleteProduct"/><input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
+    <operation name="CreateOrder">  <soap:operation soapAction="CreateOrder"/>  <input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
+    <operation name="GetOrders">    <soap:operation soapAction="GetOrders"/>    <input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
+    <operation name="GetOrder">     <soap:operation soapAction="GetOrder"/>     <input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
+    <operation name="UpdateOrder">  <soap:operation soapAction="UpdateOrder"/>  <input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
+    <operation name="DeleteOrder">  <soap:operation soapAction="DeleteOrder"/>  <input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
+  </binding>
+
+  <!-- ── Service ───────────────────────────────────────────────────────────── -->
+  <service name="SandboxService">
+    <documentation>POST to https://demo.totalshiftleft.ai/soap with SOAPAction header. GET ?wsdl to download this WSDL.</documentation>
+    <port name="SandboxPort" binding="tns:SandboxBinding">
+      <soap:address location="https://demo.totalshiftleft.ai/soap"/>
+    </port>
+  </service>
+</definitions>
