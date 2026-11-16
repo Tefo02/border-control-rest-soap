@@ -45,6 +45,46 @@ window.ProceduralAudioEngine = {
     oscillator.stop(ctx.currentTime + 0.055);
   },
 
+  playPaperCrumple() {
+    const ctx = this.ensureContext();
+    if (!ctx) return;
+    const bursts = [0, 0.06, 0.13, 0.21];
+    bursts.forEach((offset, idx) => {
+      const start = ctx.currentTime + offset;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(320 - idx * 45, start);
+      osc.frequency.exponentialRampToValueAtTime(80, start + 0.05);
+      gain.gain.setValueAtTime(0.05, start);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.055);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(start);
+      osc.stop(start + 0.055);
+    });
+  },
+
+  playFootsteps() {
+    const ctx = this.ensureContext();
+    if (!ctx) return;
+    const steps = [0, 0.22, 0.44];
+    steps.forEach((offset, idx) => {
+      const start = ctx.currentTime + offset;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(idx % 2 === 0 ? 95 : 82, start);
+      osc.frequency.exponentialRampToValueAtTime(32, start + 0.09);
+      gain.gain.setValueAtTime(0.08, start);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.095);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(start);
+      osc.stop(start + 0.095);
+    });
+  },
+
   playSlotSlide() {
     const ctx = this.ensureContext();
     if (!ctx) return;
@@ -62,23 +102,20 @@ window.ProceduralAudioEngine = {
     osc.stop(now + 0.15);
   },
 
-  playDotMatrixPrinter() {
+  playSinglePrintLineBuzz() {
     const ctx = this.ensureContext();
     if (!ctx) return;
-    const bursts = [0, 0.18, 0.36, 0.54, 0.72, 0.9, 1.08];
-    bursts.forEach((offset, idx) => {
-      const start = ctx.currentTime + offset;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(idx % 2 === 0 ? 1180 : 1320, start);
-      gain.gain.setValueAtTime(0.035, start);
-      gain.gain.exponentialRampToValueAtTime(0.002, start + 0.13);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(start);
-      osc.stop(start + 0.13);
-    });
+    const start = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(1240 + (Math.random() * 140 - 70), start);
+    gain.gain.setValueAtTime(0.032, start);
+    gain.gain.exponentialRampToValueAtTime(0.002, start + 0.14);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(start);
+    osc.stop(start + 0.14);
   },
 
   playModemHandshake() {

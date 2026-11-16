@@ -11,27 +11,33 @@ window.DeskDragManager = {
       isPassportInStampBay: false,
       documents: {
         rulebook: {
-          x: 135,
-          y: 78,
+          x: 24,
+          y: 68,
           z: 14,
           rotation: -2.2,
           isDragging: false,
+          isFeeding: false,
+          feedHeight: null,
           returned: false
         },
         passport: {
-          x: 240,
-          y: 62,
+          x: 215,
+          y: 58,
           z: 22,
           rotation: -2.6,
           isDragging: false,
+          isFeeding: false,
+          feedHeight: null,
           returned: false
         },
         manifest: {
-          x: 450,
-          y: 84,
+          x: 435,
+          y: 80,
           z: 20,
           rotation: 2.8,
           isDragging: false,
+          isFeeding: false,
+          feedHeight: null,
           returned: false
         }
       }
@@ -40,26 +46,44 @@ window.DeskDragManager = {
 
   randomNaturalAngle() {
     const raw = (Math.random() * 8.4 - 4.2);
-    if (Math.abs(raw) < 1.1) {
-      return raw >= 0 ? 1.6 : -1.6;
+    if (Math.abs(raw) < 1.3) {
+      return raw >= 0 ? 1.8 : -1.8;
     }
     return Number(raw.toFixed(1));
   },
 
-  animatePaperFeedFromPrinter(dragState, docKey, finalY) {
+  animateProgressivePaperFeed(dragState, docKey, targetY, totalHeight, stepsCount, onComplete) {
     const doc = dragState.documents[docKey];
     if (!doc) return;
-    const startY = -95;
-    const totalSteps = 9;
-    const stepDelta = (finalY - startY) / totalSteps;
-    doc.y = startY;
+    doc.isFeeding = true;
+    doc.rotation = 0;
+    doc.y = 0;
+    doc.feedHeight = 24;
 
-    for (let step = 1; step <= totalSteps; step++) {
+    const heightPerStep = Math.ceil((totalHeight - 24) / stepsCount);
+
+    for (let step = 1; step <= stepsCount; step++) {
       setTimeout(() => {
-        if (dragState.documents[docKey] && !dragState.documents[docKey].isDragging) {
-          dragState.documents[docKey].y = Math.round(startY + stepDelta * step);
+        const currentDoc = dragState.documents[docKey];
+        if (!currentDoc) return;
+        if (window.ProceduralAudioEngine) {
+          window.ProceduralAudioEngine.playSinglePrintLineBuzz();
         }
-      }, step * 145);
+        if (step < stepsCount) {
+          currentDoc.feedHeight = Math.min(totalHeight, 24 + heightPerStep * step);
+        } else {
+          currentDoc.isFeeding = false;
+          currentDoc.feedHeight = null;
+          currentDoc.y = targetY;
+          currentDoc.rotation = this.randomNaturalAngle();
+          if (window.ProceduralAudioEngine) {
+            window.ProceduralAudioEngine.playPaperRustle();
+          }
+          if (typeof onComplete === 'function') {
+            onComplete();
+          }
+        }
+      }, step * 230);
     }
   },
 
@@ -69,54 +93,62 @@ window.DeskDragManager = {
     dragState.isHoveringTrashBin = false;
     dragState.isPassportInStampBay = false;
     dragState.documents.passport = {
-      x: 210 + Math.floor(Math.random() * 24),
-      y: 54 + Math.floor(Math.random() * 14),
+      x: 195 + Math.floor(Math.random() * 24),
+      y: 52 + Math.floor(Math.random() * 14),
       z: dragState.topZIndex + 2,
       rotation: this.randomNaturalAngle(),
       isDragging: false,
+      isFeeding: false,
+      feedHeight: null,
       returned: false
     };
     dragState.documents.manifest = {
-      x: 445 + Math.floor(Math.random() * 24),
-      y: 72 + Math.floor(Math.random() * 16),
+      x: 425 + Math.floor(Math.random() * 24),
+      y: 70 + Math.floor(Math.random() * 16),
       z: dragState.topZIndex + 1,
       rotation: this.randomNaturalAngle(),
       isDragging: false,
+      isFeeding: false,
+      feedHeight: null,
       returned: false
     };
     dragState.topZIndex += 3;
   },
 
-  registerSoapPrintout(dragState, slipId, deskWidth, slipCount) {
+  registerSoapPrintout(dragState, slipId, deskWidth, slipCount, onFinishCallback) {
     dragState.topZIndex += 1;
-    const baseRightX = deskWidth ? Math.max(320, Math.min(deskWidth - 650, 560)) : 540;
+    const baseRightX = deskWidth ? Math.max(300, Math.min(deskWidth - 640, 540)) : 510;
     const cascadeOffset = ((slipCount - 1) % 5) * 18;
-    const targetY = 34 + ((slipCount - 1) % 4) * 16;
+    const targetY = 30 + ((slipCount - 1) % 4) * 16;
     dragState.documents[slipId] = {
       x: baseRightX + cascadeOffset,
-      y: -95,
+      y: 0,
       z: dragState.topZIndex,
-      rotation: this.randomNaturalAngle(),
+      rotation: 0,
       isDragging: false,
+      isFeeding: true,
+      feedHeight: 24,
       returned: false
     };
-    this.animatePaperFeedFromPrinter(dragState, slipId, targetY);
+    this.animateProgressivePaperFeed(dragState, slipId, targetY, 155, 7, onFinishCallback);
   },
 
-  registerWantedPoster(dragState, posterId, deskWidth, posterCount) {
+  registerWantedPoster(dragState, posterId, deskWidth, posterCount, onFinishCallback) {
     dragState.topZIndex += 1;
-    const targetX = deskWidth ? Math.max(290, Math.min(deskWidth - 660, 480)) : 460;
+    const targetX = deskWidth ? Math.max(270, Math.min(deskWidth - 650, 450)) : 430;
     const cascadeOffset = ((posterCount - 1) % 4) * 16;
-    const targetY = 28 + ((posterCount - 1) % 3) * 14;
+    const targetY = 26 + ((posterCount - 1) % 3) * 14;
     dragState.documents[posterId] = {
       x: targetX + cascadeOffset,
-      y: -95,
+      y: 0,
       z: dragState.topZIndex,
-      rotation: this.randomNaturalAngle(),
+      rotation: 0,
       isDragging: false,
+      isFeeding: true,
+      feedHeight: 24,
       returned: false
     };
-    this.animatePaperFeedFromPrinter(dragState, posterId, targetY);
+    this.animateProgressivePaperFeed(dragState, posterId, targetY, 345, 9, onFinishCallback);
   },
 
   bounceBackToDesk(dragState, docKey) {
@@ -128,11 +160,11 @@ window.DeskDragManager = {
   },
 
   movePassportIntoStampBay(dragState, deskElement) {
-    const deskWidth = deskElement ? deskElement.getBoundingClientRect().width : 1100;
+    const deskWidth = deskElement ? deskElement.getBoundingClientRect().width : 1000;
     const passportDoc = dragState.documents.passport;
     dragState.topZIndex += 1;
     passportDoc.z = dragState.topZIndex;
-    passportDoc.x = Math.max(300, deskWidth - 340);
+    passportDoc.x = Math.max(280, deskWidth - 335);
     passportDoc.y = 78;
     passportDoc.rotation = -1.2;
     dragState.isPassportInStampBay = true;
@@ -154,13 +186,12 @@ window.DeskDragManager = {
     if (!activeDoc) return;
 
     if (activeKey === 'passport' || activeKey === 'manifest') {
-      dragState.isHoveringReturnSlot = activeDoc.y < -42 && activeDoc.x <= 540;
+      dragState.isHoveringReturnSlot = activeDoc.y < -45 && activeDoc.x <= 520;
     } else {
       dragState.isHoveringReturnSlot = false;
     }
 
-    const deskHeight = deskRect ? deskRect.height : 480;
-    dragState.isHoveringTrashBin = activeDoc.x < 105 && activeDoc.y > (deskHeight - 175);
+    dragState.isHoveringTrashBin = activeDoc.x < -30;
   },
 
   bringToFront(dragState, docKey) {
@@ -175,7 +206,7 @@ window.DeskDragManager = {
       return;
     }
     const targetDoc = dragState.documents[docKey];
-    if (!targetDoc || !deskElement || targetDoc.returned) return;
+    if (!targetDoc || !deskElement || targetDoc.returned || targetDoc.isFeeding) return;
     this.bringToFront(dragState, docKey);
     targetDoc.isDragging = true;
     targetDoc.rotation = this.randomNaturalAngle();
@@ -210,10 +241,10 @@ window.DeskDragManager = {
     const rawX = event.clientX - deskRect.left - dragState.pointerOffsetX;
     const rawY = event.clientY - deskRect.top - dragState.pointerOffsetY;
 
-    const minX = -35;
+    const minX = -145;
     const maxX = Math.max(8, deskRect.width - docWidth - 8);
-    const minY = (activeKey === 'passport' || activeKey === 'manifest') ? -240 : -30;
-    const maxY = Math.max(20, deskRect.height - docHeight + 35);
+    const minY = (activeKey === 'passport' || activeKey === 'manifest') ? -240 : 4;
+    const maxY = Math.max(20, deskRect.height - docHeight + 25);
 
     const deltaX = event.clientX - (dragState.lastClientX || event.clientX);
     dragState.lastClientX = event.clientX;
@@ -240,8 +271,9 @@ window.DeskDragManager = {
       dropOutcome = { action: 'TRASH', docKey: activeKey };
     } else if (dragState.isHoveringReturnSlot) {
       dropOutcome = { action: 'RETURN_PASSENGER', docKey: activeKey };
-    } else if (targetDoc && targetDoc.y < 10) {
-      targetDoc.y = 18;
+    } else if (targetDoc) {
+      if (targetDoc.y < 10) targetDoc.y = 18;
+      if (targetDoc.x < 8) targetDoc.x = 18;
     }
 
     dragState.activeDocKey = null;
@@ -263,6 +295,10 @@ window.DeskDragManager = {
   buildDocumentInlineStyle(docState) {
     if (!docState || docState.returned) return 'display: none;';
     const scaleValue = docState.isDragging ? 1.03 : 1.0;
-    return `left: ${docState.x}px; top: ${docState.y}px; z-index: ${docState.z}; transform: rotate(${docState.rotation}deg) scale(${scaleValue});`;
+    const rot = docState.isFeeding ? 0 : docState.rotation;
+    const clipStyle = docState.isFeeding && docState.feedHeight
+      ? `max-height: ${docState.feedHeight}px; overflow: hidden;`
+      : '';
+    return `left: ${docState.x}px; top: ${docState.y}px; z-index: ${docState.z}; transform: rotate(${rot}deg) scale(${scaleValue}); ${clipStyle}`;
   }
 };

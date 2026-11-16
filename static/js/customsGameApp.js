@@ -2,6 +2,8 @@ window.customsGameApp = function () {
   return {
     shiftState: null,
     passenger: null,
+    travelerAnimationState: 'empty',
+    isTravelerTyping: false,
     areDocumentsHandedOver: false,
     chatMessages: [],
     interrogationCycleIndex: 0,
@@ -52,7 +54,7 @@ window.customsGameApp = function () {
         if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') {
           return;
         }
-        if (event.code === 'Space' && this.passenger && !this.areDocumentsHandedOver) {
+        if (event.code === 'Space' && this.passenger && !this.areDocumentsHandedOver && !this.isTravelerTyping) {
           event.preventDefault();
           this.requestDocumentsFromTraveler();
           return;
@@ -118,18 +120,35 @@ window.customsGameApp = function () {
       window.ProceduralAudioEngine.playPaperRustle();
     },
 
-    appendChatMessage(sender, text) {
-      this.chatMessages.push({
-        id: Date.now() + Math.random(),
-        sender,
-        text
-      });
+    scrollChatToBottom() {
       this.$nextTick(() => {
         const box = this.$refs.chatScrollBox;
         if (box) {
           box.scrollTop = box.scrollHeight;
         }
       });
+    },
+
+    appendChatMessage(sender, text) {
+      this.chatMessages.push({
+        id: Date.now() + Math.random(),
+        sender,
+        text
+      });
+      this.scrollChatToBottom();
+    },
+
+    enqueueTravelerReplyWithDelay(text, delayMs = 850, onDelivered = null) {
+      this.isTravelerTyping = true;
+      this.scrollChatToBottom();
+      setTimeout(() => {
+        this.isTravelerTyping = false;
+        this.appendChatMessage('TRAVELER', text);
+        window.ProceduralAudioEngine.playKeyClick();
+        if (typeof onDelivered === 'function') {
+          onDelivered();
+        }
+      }, delayMs);
     },
 
     toggleDevDrawer() {
@@ -143,19 +162,19 @@ window.customsGameApp = function () {
     },
 
     requestDocumentsFromTraveler() {
-      if (!this.passenger || this.areDocumentsHandedOver) return;
-      this.areDocumentsHandedOver = true;
+      if (!this.passenger || this.areDocumentsHandedOver || this.isTravelerTyping) return;
       this.appendChatMessage('OFFICER', 'Papers, please. Place your passport and customs manifest in the slot.');
-      this.appendChatMessage('TRAVELER', this.passenger.dialogue_speech);
-      window.DeskDragManager.resetTravelerDocuments(this.dragState);
-      window.ProceduralAudioEngine.playSlotSlide();
+      window.ProceduralAudioEngine.playKeyClick();
+
+      this.enqueueTravelerReplyWithDelay(this.passenger.dialogue_speech, 900, () => {
+        this.areDocumentsHandedOver = true;
+        window.DeskDragManager.resetTravelerDocuments(this.dragState);
+        window.ProceduralAudioEngine.playSlotSlide();
+      });
     },
 
     askTraveler(topicKey) {
-      if (!this.passenger || !this.passenger.interrogation_responses) return;
-      if (!this.areDocumentsHandedOver) {
-        this.requestDocumentsFromTraveler();
-      }
+      if (!this.passenger || !this.passenger.interrogation_responses || this.isTravelerTyping) return;
       const officerPrompts = {
         origin: 'State your city of origin and embassy phone prefix.',
         currency: 'Confirm the currency declared on your customs manifest.',
@@ -165,8 +184,9 @@ window.customsGameApp = function () {
       if (!answer) return;
       this.activeInterrogationTopic = topicKey;
       this.appendChatMessage('OFFICER', officerPrompts[topicKey] || 'Clarify your statement.');
-      this.appendChatMessage('TRAVELER', answer);
       window.ProceduralAudioEngine.playKeyClick();
+
+      this.enqueueTravelerReplyWithDelay(answer, 950);
     },
 
     startDocDrag(event, docKey) {
@@ -201,24 +221,24 @@ window.customsGameApp = function () {
       if (docKey.startsWith('soapSlip_')) {
         this.printedSoapSlips = this.printedSoapSlips.filter((s) => s.id !== docKey);
         delete this.dragState.documents[docKey];
-        window.ProceduralAudioEngine.playPaperRustle();
+        window.ProceduralAudioEngine.playPaperCrumple();
         return;
       }
       if (docKey.startsWith('wantedPoster_')) {
         this.printedWantedPosters = this.printedWantedPosters.filter((p) => p.id !== docKey);
         delete this.dragState.documents[docKey];
-        window.ProceduralAudioEngine.playPaperRustle();
+        window.ProceduralAudioEngine.playPaperCrumple();
         return;
       }
       window.DeskDragManager.bounceBackToDesk(this.dragState, docKey);
       window.ProceduralAudioEngine.playAlertBuzzer();
-      this.appendChatMessage('SYSTEM', 'Protected document! Only printed slips (WSDL & Wanted lists) can be discarded in the trash bin.');
+      this.appendChatMessage('SYSTEM', 'Protected document! Only printed slips (WSDL & Wanted lists) can be thrown into the external trash bin.');
     },
 
     handleDocumentDroppedInBoothSlot(docKey) {
       if (!this.verdictStamp) {
         window.DeskDragManager.bounceBackToDesk(this.dragState, docKey);
-        this.appendChatMessage('TRAVELER', 'Officer, you have not stamped my passport yet! Use the stamp bay on the right first.');
+        this.enqueueTravelerReplyWithDelay('Officer, you have not stamped my passport yet! Use the stamp bay on the right first.', 650);
         window.ProceduralAudioEngine.playAlertBuzzer();
         return;
       }
@@ -232,7 +252,7 @@ window.customsGameApp = function () {
         this.finalizeRoundVerdict();
       } else {
         const remainingName = pReturned ? 'Customs Manifest' : 'Stamped Passport';
-        this.appendChatMessage('TRAVELER', `Thank you. Please drag my ${remainingName} up here to the window as well.`);
+        this.enqueueTravelerReplyWithDelay(`Thank you. Please drag my ${remainingName} up here to the window as well.`, 600);
       }
     },
 
@@ -288,36 +308,49 @@ window.customsGameApp = function () {
       this.mainframeData = null;
       this.manualCommand = '';
       this.chatMessages = [];
+      this.travelerAnimationState = 'empty';
 
       try {
         const res = await fetch('/api/inspections/next');
-        this.passenger = await res.json();
-        if (this.shiftState) {
-          this.shiftState.current_passenger_index = this.passenger.passenger_index;
-          this.shiftState.total_passengers = this.passenger.total_passengers;
-        }
-        this.appendChatMessage('TRAVELER', 'Good day, officer. Ready for inspection.');
-        this.recordRestTelemetry(this.passenger.rest_telemetry);
-        this.terminalLogs.push({
-          id: Date.now(),
-          text: `VISITOR #${this.passenger.passenger_index}/${this.passenger.total_passengers}: ${this.passenger.passenger_name.toUpperCase()}`,
-          isError: false
-        });
-        window.ProceduralAudioEngine.playKeyClick();
-        this.$nextTick(() => {
-          if (window.hljs && this.isDevDrawerOpen) window.hljs.highlightAll();
-        });
+        const nextPassenger = await res.json();
+
+        setTimeout(() => {
+          this.passenger = nextPassenger;
+          this.travelerAnimationState = 'walking-in';
+          window.ProceduralAudioEngine.playFootsteps();
+
+          if (this.shiftState) {
+            this.shiftState.current_passenger_index = this.passenger.passenger_index;
+            this.shiftState.total_passengers = this.passenger.total_passengers;
+          }
+          this.recordRestTelemetry(this.passenger.rest_telemetry);
+          this.terminalLogs.push({
+            id: Date.now(),
+            text: `VISITOR #${this.passenger.passenger_index}/${this.passenger.total_passengers}: ${this.passenger.passenger_name.toUpperCase()}`,
+            isError: false
+          });
+
+          setTimeout(() => {
+            this.travelerAnimationState = 'idle';
+            this.enqueueTravelerReplyWithDelay('Good day, officer. Ready for inspection.', 850);
+          }, 600);
+
+          this.$nextTick(() => {
+            if (window.hljs && this.isDevDrawerOpen) window.hljs.highlightAll();
+          });
+        }, 420);
       } catch (err) {}
     },
 
     async executeManualSoapQuery() {
       const raw = this.manualCommand.trim().toUpperCase();
-      if (!raw || this.isQuerying || !this.passenger) return;
+      if (!raw || this.isQuerying || this.isPrintingSoapSlip || !this.passenger) return;
       const cleanIso = raw.replace('QUERY', '').replace('ISO', '').trim();
       this.isQuerying = true;
+      this.manualCommand = '';
       window.ProceduralAudioEngine.playModemHandshake();
       this.terminalLogs.push({ id: Date.now(), text: `> QUERY ${cleanIso}`, isError: false });
-      this.terminalLogs.push({ id: Date.now() + 1, text: `DISPATCHING SOAP 1.1 ENVELOPE...`, isError: false });
+      this.terminalLogs.push({ id: Date.now() + 1, text: `DIALING OORSPRONG GATEWAY [9600 BAUD]...`, isError: false });
 
       try {
         const res = await fetch(`/api/inspections/${this.passenger.inspection_id}/mainframe-query`, {
@@ -325,79 +358,92 @@ window.customsGameApp = function () {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ query_iso_code: cleanIso })
         });
-        this.mainframeData = await res.json();
-        this.recordSoapTelemetry(this.mainframeData.soap_telemetry);
-        const rec = this.mainframeData.canonical_record;
-
-        this.isPrintingSoapSlip = true;
-        window.ProceduralAudioEngine.playDotMatrixPrinter();
-        this.terminalLogs.push({
-          id: Date.now() + 2,
-          text: `XML (${this.mainframeData.soap_telemetry.bytes_received}B) -> PRINTING SLIP TO DESK...`,
-          isError: false
-        });
-
-        const slipId = 'soapSlip_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
-        const deskWidth = this.$refs.deskSurface ? this.$refs.deskSurface.getBoundingClientRect().width : 1100;
-        const nextCount = this.printedSoapSlips.length + 1;
-        window.DeskDragManager.registerSoapPrintout(this.dragState, slipId, deskWidth, nextCount);
-
-        const newSlip = (rec && rec.name !== 'Unknown')
-          ? {
-              id: slipId,
-              queriedIso: cleanIso,
-              isFault: false,
-              name: rec.name,
-              capital: rec.capital,
-              currency: rec.currency_code,
-              phone: '+' + rec.phone_code
-            }
-          : {
-              id: slipId,
-              queriedIso: cleanIso,
-              isFault: true,
-              faultMessage: `SOAP FAULT: ISO '${cleanIso}' INVALID`
-            };
-
-        this.printedSoapSlips.push(newSlip);
+        const queryData = await res.json();
 
         setTimeout(() => {
-          this.isPrintingSoapSlip = false;
-        }, 1450);
+          this.terminalLogs.push({
+            id: Date.now() + 2,
+            text: `PARSING SOAP 1.1 ENVELOPE (${queryData.soap_telemetry.bytes_received} BYTES)...`,
+            isError: false
+          });
+          window.ProceduralAudioEngine.playKeyClick();
+        }, 850);
 
-        this.manualCommand = '';
-        this.$nextTick(() => {
-          if (window.hljs && this.isDevDrawerOpen) window.hljs.highlightAll();
-        });
+        setTimeout(() => {
+          this.mainframeData = queryData;
+          this.recordSoapTelemetry(this.mainframeData.soap_telemetry);
+          const rec = this.mainframeData.canonical_record;
+
+          this.isQuerying = false;
+          this.isPrintingSoapSlip = true;
+          this.terminalLogs.push({
+            id: Date.now() + 3,
+            text: `WSDL VERIFIED -> FEEDING TRACTOR PAPER ON LPT1...`,
+            isError: false
+          });
+
+          const slipId = 'soapSlip_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+          const deskWidth = this.$refs.deskSurface ? this.$refs.deskSurface.getBoundingClientRect().width : 1000;
+          const nextCount = this.printedSoapSlips.length + 1;
+
+          window.DeskDragManager.registerSoapPrintout(this.dragState, slipId, deskWidth, nextCount, () => {
+            this.isPrintingSoapSlip = false;
+          });
+
+          const newSlip = (rec && rec.name !== 'Unknown')
+            ? {
+                id: slipId,
+                queriedIso: cleanIso,
+                isFault: false,
+                name: rec.name,
+                capital: rec.capital,
+                currency: rec.currency_code,
+                phone: '+' + rec.phone_code
+              }
+            : {
+                id: slipId,
+                queriedIso: cleanIso,
+                isFault: true,
+                faultMessage: `SOAP FAULT: ISO '${cleanIso}' INVALID`
+              };
+
+          this.printedSoapSlips.push(newSlip);
+          this.$nextTick(() => {
+            if (window.hljs && this.isDevDrawerOpen) window.hljs.highlightAll();
+          });
+        }, 1650);
       } catch (err) {
-        this.terminalLogs.push({ id: Date.now() + 3, text: `NETWORK FAULT TALKING TO WSDL GATEWAY`, isError: true });
-      } finally {
         this.isQuerying = false;
+        this.terminalLogs.push({ id: Date.now() + 4, text: `NETWORK FAULT TALKING TO WSDL GATEWAY`, isError: true });
       }
     },
 
     async printDailyWantedPoster() {
       if (this.isPrintingWantedPoster) return;
       this.isPrintingWantedPoster = true;
-      window.ProceduralAudioEngine.playDotMatrixPrinter();
+      window.ProceduralAudioEngine.playModemHandshake();
 
       try {
         const res = await fetch('/api/inspections/shift/current');
         this.shiftState = await res.json();
-        const posterId = 'wantedPoster_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
-        const deskWidth = this.$refs.deskSurface ? this.$refs.deskSurface.getBoundingClientRect().width : 1100;
-        const nextCount = this.printedWantedPosters.length + 1;
-        window.DeskDragManager.registerWantedPoster(this.dragState, posterId, deskWidth, nextCount);
-        this.printedWantedPosters.push({
-          id: posterId,
-          dayNumber: this.shiftState.day_number,
-          criminals: this.shiftState.wanted_list
-        });
-      } catch (err) {
-      } finally {
+
         setTimeout(() => {
-          this.isPrintingWantedPoster = false;
-        }, 1250);
+          const posterId = 'wantedPoster_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+          const deskWidth = this.$refs.deskSurface ? this.$refs.deskSurface.getBoundingClientRect().width : 1000;
+          const nextCount = this.printedWantedPosters.length + 1;
+
+          window.DeskDragManager.registerWantedPoster(this.dragState, posterId, deskWidth, nextCount, () => {
+            this.isPrintingWantedPoster = false;
+          });
+
+          this.printedWantedPosters.push({
+            id: posterId,
+            dayNumber: this.shiftState.day_number,
+            criminals: this.shiftState.wanted_list
+          });
+        }, 850);
+      } catch (err) {
+        this.isPrintingWantedPoster = false;
       }
     },
 
@@ -465,14 +511,15 @@ window.customsGameApp = function () {
         this.inspectionsCount++;
         if (result.is_correct) this.correctCount++;
         this.accuracyRate = Math.round((this.correctCount / this.inspectionsCount) * 100);
-        this.appendChatMessage('TRAVELER', result.traveler_reaction);
-        this.verdictReport = result;
 
-        if (!result.is_correct) {
-          window.ProceduralAudioEngine.playAlertBuzzer();
-        } else {
-          window.ProceduralAudioEngine.playKeyClick();
-        }
+        this.enqueueTravelerReplyWithDelay(result.traveler_reaction, 700, () => {
+          this.verdictReport = result;
+          if (!result.is_correct) {
+            window.ProceduralAudioEngine.playAlertBuzzer();
+          } else {
+            window.ProceduralAudioEngine.playKeyClick();
+          }
+        });
       } catch (err) {
       } finally {
         this.isSubmitting = false;
@@ -480,12 +527,18 @@ window.customsGameApp = function () {
     },
 
     advanceAfterVerdict() {
-      if (this.verdictReport && this.verdictReport.is_shift_completed) {
-        this.startNewShiftDay();
-      } else {
-        this.verdictReport = null;
-        this.loadNextTraveler();
-      }
+      const shiftDone = this.verdictReport && this.verdictReport.is_shift_completed;
+      this.verdictReport = null;
+      this.travelerAnimationState = 'walking-out';
+      window.ProceduralAudioEngine.playFootsteps();
+
+      setTimeout(() => {
+        if (shiftDone) {
+          this.startNewShiftDay();
+        } else {
+          this.loadNextTraveler();
+        }
+      }, 600);
     },
 
     calculateOverhead() {
