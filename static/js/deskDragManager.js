@@ -17,7 +17,7 @@ window.DeskDragManager = {
           rotation: -2.2,
           isDragging: false,
           isFeeding: false,
-          feedHeight: null,
+          hiddenTopPx: 0,
           returned: false
         },
         passport: {
@@ -27,7 +27,7 @@ window.DeskDragManager = {
           rotation: -2.6,
           isDragging: false,
           isFeeding: false,
-          feedHeight: null,
+          hiddenTopPx: 0,
           returned: false
         },
         manifest: {
@@ -37,7 +37,7 @@ window.DeskDragManager = {
           rotation: 2.8,
           isDragging: false,
           isFeeding: false,
-          feedHeight: null,
+          hiddenTopPx: 0,
           returned: false
         }
       }
@@ -55,12 +55,15 @@ window.DeskDragManager = {
   animateProgressivePaperFeed(dragState, docKey, targetY, totalHeight, stepsCount, onComplete) {
     const doc = dragState.documents[docKey];
     if (!doc) return;
+    const initialEmerged = 24;
+    const initialHidden = Math.max(0, totalHeight - initialEmerged);
+
     doc.isFeeding = true;
     doc.rotation = 0;
-    doc.y = 0;
-    doc.feedHeight = 24;
+    doc.hiddenTopPx = initialHidden;
+    doc.y = 8 - initialHidden;
 
-    const heightPerStep = Math.ceil((totalHeight - 24) / stepsCount);
+    const stepAdvance = (totalHeight - initialEmerged) / stepsCount;
 
     for (let step = 1; step <= stepsCount; step++) {
       setTimeout(() => {
@@ -70,10 +73,13 @@ window.DeskDragManager = {
           window.ProceduralAudioEngine.playSinglePrintLineBuzz();
         }
         if (step < stepsCount) {
-          currentDoc.feedHeight = Math.min(totalHeight, 24 + heightPerStep * step);
+          const emergedPx = Math.min(totalHeight, Math.round(initialEmerged + stepAdvance * step));
+          const remainingHidden = Math.max(0, totalHeight - emergedPx);
+          currentDoc.hiddenTopPx = remainingHidden;
+          currentDoc.y = 8 - remainingHidden;
         } else {
           currentDoc.isFeeding = false;
-          currentDoc.feedHeight = null;
+          currentDoc.hiddenTopPx = 0;
           currentDoc.y = targetY;
           currentDoc.rotation = this.randomNaturalAngle();
           if (window.ProceduralAudioEngine) {
@@ -83,7 +89,7 @@ window.DeskDragManager = {
             onComplete();
           }
         }
-      }, step * 230);
+      }, step * 240);
     }
   },
 
@@ -99,7 +105,7 @@ window.DeskDragManager = {
       rotation: this.randomNaturalAngle(),
       isDragging: false,
       isFeeding: false,
-      feedHeight: null,
+      hiddenTopPx: 0,
       returned: false
     };
     dragState.documents.manifest = {
@@ -109,7 +115,7 @@ window.DeskDragManager = {
       rotation: this.randomNaturalAngle(),
       isDragging: false,
       isFeeding: false,
-      feedHeight: null,
+      hiddenTopPx: 0,
       returned: false
     };
     dragState.topZIndex += 3;
@@ -117,38 +123,40 @@ window.DeskDragManager = {
 
   registerSoapPrintout(dragState, slipId, deskWidth, slipCount, onFinishCallback) {
     dragState.topZIndex += 1;
-    const baseRightX = deskWidth ? Math.max(300, Math.min(deskWidth - 640, 540)) : 510;
+    const baseRightX = deskWidth ? Math.max(300, Math.min(deskWidth - 640, 460)) : 450;
     const cascadeOffset = ((slipCount - 1) % 5) * 18;
-    const targetY = 30 + ((slipCount - 1) % 4) * 16;
+    const targetY = 28 + ((slipCount - 1) % 4) * 16;
+    const slipTotalHeight = 148;
     dragState.documents[slipId] = {
       x: baseRightX + cascadeOffset,
-      y: 0,
+      y: 8 - (slipTotalHeight - 24),
       z: dragState.topZIndex,
       rotation: 0,
       isDragging: false,
       isFeeding: true,
-      feedHeight: 24,
+      hiddenTopPx: slipTotalHeight - 24,
       returned: false
     };
-    this.animateProgressivePaperFeed(dragState, slipId, targetY, 155, 7, onFinishCallback);
+    this.animateProgressivePaperFeed(dragState, slipId, targetY, slipTotalHeight, 6, onFinishCallback);
   },
 
   registerWantedPoster(dragState, posterId, deskWidth, posterCount, onFinishCallback) {
     dragState.topZIndex += 1;
-    const targetX = deskWidth ? Math.max(270, Math.min(deskWidth - 650, 450)) : 430;
+    const targetX = deskWidth ? Math.max(270, Math.min(deskWidth - 650, 440)) : 420;
     const cascadeOffset = ((posterCount - 1) % 4) * 16;
     const targetY = 26 + ((posterCount - 1) % 3) * 14;
+    const posterTotalHeight = 340;
     dragState.documents[posterId] = {
       x: targetX + cascadeOffset,
-      y: 0,
+      y: 8 - (posterTotalHeight - 24),
       z: dragState.topZIndex,
       rotation: 0,
       isDragging: false,
       isFeeding: true,
-      feedHeight: 24,
+      hiddenTopPx: posterTotalHeight - 24,
       returned: false
     };
-    this.animateProgressivePaperFeed(dragState, posterId, targetY, 345, 9, onFinishCallback);
+    this.animateProgressivePaperFeed(dragState, posterId, targetY, posterTotalHeight, 9, onFinishCallback);
   },
 
   bounceBackToDesk(dragState, docKey) {
@@ -186,7 +194,7 @@ window.DeskDragManager = {
     if (!activeDoc) return;
 
     if (activeKey === 'passport' || activeKey === 'manifest') {
-      dragState.isHoveringReturnSlot = activeDoc.y < -45 && activeDoc.x <= 520;
+      dragState.isHoveringReturnSlot = activeDoc.y < -40;
     } else {
       dragState.isHoveringReturnSlot = false;
     }
@@ -296,8 +304,8 @@ window.DeskDragManager = {
     if (!docState || docState.returned) return 'display: none;';
     const scaleValue = docState.isDragging ? 1.03 : 1.0;
     const rot = docState.isFeeding ? 0 : docState.rotation;
-    const clipStyle = docState.isFeeding && docState.feedHeight
-      ? `max-height: ${docState.feedHeight}px; overflow: hidden;`
+    const clipStyle = docState.isFeeding && docState.hiddenTopPx > 0
+      ? `clip-path: inset(${docState.hiddenTopPx}px -30px -30px -30px);`
       : '';
     return `left: ${docState.x}px; top: ${docState.y}px; z-index: ${docState.z}; transform: rotate(${rot}deg) scale(${scaleValue}); ${clipStyle}`;
   }

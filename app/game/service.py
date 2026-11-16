@@ -50,7 +50,13 @@ PASSENGER_PROFILES = [
     {"name": "Nadia Petrova", "age": 30, "birth": "1996-04-11", "purpose": "Classical Music Conservatory", "crime": "Encrypted Courier Interception"},
     {"name": "Tariq Haddad", "age": 44, "birth": "1982-10-02", "purpose": "Maritime Logistics Summit", "crime": "Falsified Naval Manifests"},
     {"name": "Hana Takahashi", "age": 26, "birth": "2000-01-29", "purpose": "Robotics Symposium", "crime": "Microchip Export Violation"},
-    {"name": "Marcus Sterling", "age": 49, "birth": "1977-07-08", "purpose": "Mineral Extraction Advisory", "crime": "Sovereign Bond Counterfeiting"}
+    {"name": "Marcus Sterling", "age": 49, "birth": "1977-07-08", "purpose": "Mineral Extraction Advisory", "crime": "Sovereign Bond Counterfeiting"},
+    {"name": "Sofia Rossi", "age": 32, "birth": "1994-05-19", "purpose": "Fashion Textile Exhibition", "crime": "Luxury Goods Smuggling"},
+    {"name": "Henrik Ibsen", "age": 47, "birth": "1979-11-23", "purpose": "Arctic Hydrography Survey", "crime": "Subsea Cable Tampering"},
+    {"name": "Amara Okafor", "age": 28, "birth": "1998-02-14", "purpose": "Telecommunications Forum", "crime": "Frequency Spectrum Hijacking"},
+    {"name": "Lucas Van Der Berg", "age": 39, "birth": "1987-09-05", "purpose": "Diamond Valuation Congress", "crime": "Unregistered Bullion Transport"},
+    {"name": "Mei-Ling Zhou", "age": 35, "birth": "1991-12-18", "purpose": "Quantum Computing Workshop", "crime": "Cryogenic Hardware Theft"},
+    {"name": "Rafael Morales", "age": 42, "birth": "1984-03-07", "purpose": "Coffee Export Trade Fair", "crime": "Forged Phytosanitary Permits"}
 ]
 
 class InspectionService:
@@ -150,8 +156,12 @@ class InspectionService:
                 p for p in PASSENGER_PROFILES if p["name"] not in self._used_non_wanted_names
             ]
             if not available_pool:
-                available_pool = PASSENGER_PROFILES
+                self._used_non_wanted_names = {w.passenger_name for w in shift.wanted_list}
+                available_pool = [
+                    p for p in PASSENGER_PROFILES if p["name"] not in self._used_non_wanted_names
+                ]
             profile = random.choice(available_pool)
+            self._used_non_wanted_names.add(profile["name"])
             strategy = self._select_non_wanted_strategy()
 
         avatar_seed = profile["name"].replace(" ", "")
