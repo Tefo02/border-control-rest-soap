@@ -1,11 +1,20 @@
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
-from app.domain.models import InspectionPassport, MainframeQueryResult, VerdictResult, VerdictSubmission
+from app.domain.models import (
+    InspectionPassport,
+    InterpolQueryResult,
+    MainframeQueryResult,
+    VerdictResult,
+    VerdictSubmission,
+)
 from app.game.service import InspectionService
 
 class MainframeQueryRequest(BaseModel):
     query_iso_code: Optional[str] = None
+
+class InterpolQueryRequest(BaseModel):
+    passport_number: Optional[str] = None
 
 router = APIRouter(prefix="/api/inspections", tags=["Inspections"])
 
@@ -34,6 +43,26 @@ def query_mainframe_records(
             )
         iso_to_query = request.query_iso_code or case.passport.declared_iso_code
         return service.query_mainframe(inspection_id, iso_to_query)
+    except KeyError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc))
+
+@router.post("/{inspection_id}/interpol-query", response_model=InterpolQueryResult)
+def query_interpol_records(
+    inspection_id: str,
+    request: InterpolQueryRequest,
+    service: InspectionService = Depends(get_inspection_service)
+) -> InterpolQueryResult:
+    try:
+        case = service._repository.get(inspection_id)
+        if not case:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Inspection session '{inspection_id}' not found."
+            )
+        passport_num = request.passport_number or case.passport.passport_number
+        return service.query_interpol_watchlist(inspection_id, passport_num)
     except KeyError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
     except Exception as exc:

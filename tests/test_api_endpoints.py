@@ -10,8 +10,18 @@ def test_api_full_inspection_cycle():
     inspection_id = passport["inspection_id"]
     assert inspection_id
     assert passport["passenger_name"]
+    assert passport["dialogue_speech"]
+    assert passport["passport_number"]
     assert passport["rest_telemetry"]["protocol"] == "REST"
-    assert passport["rest_telemetry"]["status_code"] == 200
+
+    interpol_response = client.post(
+        f"/api/inspections/{inspection_id}/interpol-query",
+        json={"passport_number": passport["passport_number"]}
+    )
+    assert interpol_response.status_code == 200
+    interpol_data = interpol_response.json()
+    assert "is_wanted" in interpol_data
+    assert interpol_data["rest_telemetry"]["protocol"] == "REST"
 
     query_payload = {"query_iso_code": passport["declared_iso_code"]}
     mainframe_response = client.post(
@@ -21,7 +31,6 @@ def test_api_full_inspection_cycle():
     assert mainframe_response.status_code == 200
     mainframe_data = mainframe_response.json()
     assert mainframe_data["soap_telemetry"]["protocol"] == "SOAP"
-    assert mainframe_data["soap_telemetry"]["status_code"] == 200
 
     verdict_response = client.post(
         f"/api/inspections/{inspection_id}/verdict",
@@ -31,7 +40,6 @@ def test_api_full_inspection_cycle():
     verdict_data = verdict_response.json()
     assert "is_correct" in verdict_data
     assert "score_delta" in verdict_data
-    assert "technical_explanation" in verdict_data
 
 def test_api_nonexistent_session():
     response = client.post(

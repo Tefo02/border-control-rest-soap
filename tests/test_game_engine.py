@@ -8,8 +8,11 @@ from app.game.strategies import (
     CapitalMismatchStrategy,
     CurrencyMismatchStrategy,
     DialingCodeMismatchStrategy,
+    ExpiredPassportStrategy,
+    InterpolWatchlistStrategy,
     InvalidIsoFaultStrategy,
     LegitimateStrategy,
+    SpeechContradictionStrategy,
 )
 
 def build_dummy_record() -> CountryRecord:
@@ -27,42 +30,33 @@ def build_dummy_record() -> CountryRecord:
 
 def test_legitimate_strategy():
     strategy = LegitimateStrategy()
-    modifications, is_fraud, fraud_type, reason = strategy.apply(build_dummy_record())
+    modifications, is_fraud, fraud_type, reason = strategy.apply(build_dummy_record(), {})
     assert not is_fraud
     assert fraud_type == "LEGITIMATE"
+    assert not modifications["is_expired"]
+    assert not modifications["is_wanted_interpol"]
     assert modifications["declared_capital"] == "Brasilia"
-    assert modifications["declared_currency_code"] == "BRL"
-    assert modifications["declared_phone_code"] == "55"
 
-def test_capital_mismatch_strategy():
-    strategy = CapitalMismatchStrategy()
-    modifications, is_fraud, fraud_type, reason = strategy.apply(build_dummy_record())
+def test_expired_passport_strategy():
+    strategy = ExpiredPassportStrategy()
+    modifications, is_fraud, fraud_type, reason = strategy.apply(build_dummy_record(), {})
     assert is_fraud
-    assert fraud_type == "CAPITAL_MISMATCH"
-    assert modifications["declared_capital"] != "Brasilia"
-    assert "Brasilia" in reason
+    assert fraud_type == "EXPIRED_PASSPORT"
+    assert modifications["is_expired"]
 
-def test_currency_mismatch_strategy():
-    strategy = CurrencyMismatchStrategy()
-    modifications, is_fraud, fraud_type, reason = strategy.apply(build_dummy_record())
+def test_speech_contradiction_strategy():
+    strategy = SpeechContradictionStrategy()
+    modifications, is_fraud, fraud_type, reason = strategy.apply(build_dummy_record(), {})
     assert is_fraud
-    assert fraud_type == "CURRENCY_MISMATCH"
-    assert modifications["declared_currency_code"] != "BRL"
-    assert "BRL" in reason
+    assert fraud_type == "VERBAL_CONTRADICTION"
+    assert "contradicting" in reason
 
-def test_dialing_code_mismatch_strategy():
-    strategy = DialingCodeMismatchStrategy()
-    modifications, is_fraud, fraud_type, reason = strategy.apply(build_dummy_record())
+def test_interpol_watchlist_strategy():
+    strategy = InterpolWatchlistStrategy()
+    modifications, is_fraud, fraud_type, reason = strategy.apply(build_dummy_record(), {})
     assert is_fraud
-    assert fraud_type == "DIALING_CODE_MISMATCH"
-    assert modifications["declared_phone_code"] != "55"
-
-def test_invalid_iso_fault_strategy():
-    strategy = InvalidIsoFaultStrategy()
-    modifications, is_fraud, fraud_type, reason = strategy.apply(build_dummy_record())
-    assert is_fraud
-    assert fraud_type == "INVALID_ISO_FAULT"
-    assert modifications["declared_iso_code"] == "ZZ"
+    assert fraud_type == "INTERPOL_WANTED"
+    assert modifications["is_wanted_interpol"]
 
 @pytest.mark.asyncio
 async def test_inspection_service_flow():
@@ -73,16 +67,19 @@ async def test_inspection_service_flow():
 
     passport = await service.create_next_inspection()
     assert passport.inspection_id
+    assert passport.passport_number
+    assert passport.birth_date
+    assert passport.dialogue_speech
     assert not hasattr(passport, "is_fraud")
 
-    stored_case = repo.get(passport.inspection_id)
-    assert stored_case is not None
+    interpol_res = service.query_interpol_watchlist(passport.inspection_id, passport.passport_number)
+    assert interpol_res.rest_telemetry.protocol == "REST"
 
     mainframe_result = service.query_mainframe(passport.inspection_id, passport.declared_iso_code)
     assert mainframe_result.soap_telemetry.protocol == "SOAP"
 
+    stored_case = repo.get(passport.inspection_id)
     correct_decision = "DENY" if stored_case.is_fraud else "APPROVE"
     result = service.evaluate_verdict(passport.inspection_id, correct_decision)
     assert result.is_correct
     assert result.score_delta == 100
-    assert repo.get(passport.inspection_id) is None

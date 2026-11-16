@@ -27,18 +27,35 @@ class InspectionPassport(BaseModel):
     inspection_id: str
     passenger_name: str
     avatar_url: str
+    passport_number: str
+    birth_date: str
+    age: int
+    issue_date: str
+    expiration_date: str
+    is_expired: bool
+    travel_purpose: str
+    dialogue_speech: str
     declared_iso_code: str
     declared_country_name: str
     declared_capital: str
     declared_currency_code: str
     declared_phone_code: str
     flag_url: str
+    is_wanted_interpol: bool = False
     rest_telemetry: ProtocolTelemetry
 
 class MainframeQueryResult(BaseModel):
     inspection_id: str
     canonical_record: Optional[CountryRecord]
     soap_telemetry: ProtocolTelemetry
+
+class InterpolQueryResult(BaseModel):
+    inspection_id: str
+    passport_number: str
+    passenger_name: str
+    is_wanted: bool
+    wanted_reason: Optional[str] = None
+    rest_telemetry: ProtocolTelemetry
 
 class InspectionCase(BaseModel):
     inspection_id: str
