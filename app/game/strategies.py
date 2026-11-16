@@ -212,9 +212,60 @@ class SpeechContradictionStrategy(FraudStrategy):
         reason = f"Verbal testimony contradiction: traveler claims citizenship in '{mismatched_city}' with '{mismatched_curr}', contradicting passport '{canonical.name}'."
         return modifications, True, "VERBAL_CONTRADICTION", reason
 
+class PhotoMismatchStrategy(FraudStrategy):
+    def apply(self, canonical: CountryRecord, context: dict) -> tuple[dict, bool, str, str]:
+        passenger_name = context.get("profile", {}).get("name", "Traveler")
+        impostor_seed = f"ImpostorDouble_{passenger_name.replace(' ', '')}_X99"
+        impostor_photo_url = f"https://api.dicebear.com/9.x/notionists/svg?seed={impostor_seed}&flip=true"
+        speech = f"Hello officer. This is definitely my own passport from {canonical.capital}. I just got a new haircut."
+        modifications = {
+            "declared_iso_code": canonical.iso_code,
+            "declared_capital": canonical.capital,
+            "declared_currency_code": canonical.currency_code,
+            "declared_phone_code": canonical.phone_code,
+            "is_expired": False,
+            "expiration_date": "2030-09-12",
+            "is_wanted_interpol": False,
+            "passport_photo_url": impostor_photo_url,
+            "dialogue_speech": speech,
+            "violation_category": "BIOMETRIC_MISMATCH",
+            "interrogation_responses": {
+                "origin": f"I am from {canonical.capital}, {canonical.name}. Why do you keep staring at my passport photo?",
+                "currency": f"My {canonical.currency_code} declaration is completely in order.",
+                "purpose": "I swear that photo in the passport is me, the camera lens at the consulate was distorted!"
+            }
+        }
+        reason = "Biometric photo mismatch: the portrait printed on the passport belongs to a different individual than the traveler at the booth."
+        return modifications, True, "PHOTO_MISMATCH", reason
+
+class BirthAgeMismatchStrategy(FraudStrategy):
+    def apply(self, canonical: CountryRecord, context: dict) -> tuple[dict, bool, str, str]:
+        real_birth = context.get("profile", {}).get("birth", "1992-06-14")
+        forged_age = 68
+        speech = f"Good afternoon. I am arriving from {canonical.capital}. All my personal details are printed clearly."
+        modifications = {
+            "declared_iso_code": canonical.iso_code,
+            "declared_capital": canonical.capital,
+            "declared_currency_code": canonical.currency_code,
+            "declared_phone_code": canonical.phone_code,
+            "is_expired": False,
+            "expiration_date": "2030-04-19",
+            "is_wanted_interpol": False,
+            "forged_age": forged_age,
+            "dialogue_speech": speech,
+            "violation_category": "BIOMETRIC_MISMATCH",
+            "interrogation_responses": {
+                "origin": f"I reside in {canonical.capital}, {canonical.name}.",
+                "currency": f"I carry {canonical.currency_code} currency.",
+                "purpose": f"Wait... my birth date says {real_birth} but my passport states I am {forged_age} years old? Must be a typo!"
+            }
+        }
+        reason = f"Biometric age discrepancy: birth date '{real_birth}' does not match stated age '{forged_age} YRS' in 2026."
+        return modifications, True, "BIRTH_AGE_MISMATCH", reason
+
 class InterpolWatchlistStrategy(FraudStrategy):
     def apply(self, canonical: CountryRecord, context: dict) -> tuple[dict, bool, str, str]:
-        speech = f"Hello officer. My {canonical.name} passport is completely valid. No need to run a background check."
+        speech = f"Hello officer. My {canonical.name} passport is completely valid. No need to check the wanted bulletin."
         modifications = {
             "declared_iso_code": canonical.iso_code,
             "declared_capital": canonical.capital,
@@ -228,8 +279,8 @@ class InterpolWatchlistStrategy(FraudStrategy):
             "interrogation_responses": {
                 "origin": f"I am from {canonical.capital}, {canonical.name}. All my WSDL fields are genuine.",
                 "currency": f"I have {canonical.currency_code} declared properly.",
-                "purpose": "Why are you opening WATCHLIST.EXE? My personal record is private!"
+                "purpose": "Please do not compare my face against the Daily Wanted Fugitives list!"
             }
         }
-        reason = "Interpol Red Notice Alert: biometric ID matches active international warrant for financial espionage."
+        reason = "Interpol Red Notice Alert: traveler matches the Daily Wanted Criminals Bulletin."
         return modifications, True, "INTERPOL_WANTED", reason

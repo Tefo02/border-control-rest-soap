@@ -46,6 +46,7 @@ class InspectionPassport(BaseModel):
     total_passengers: int = 8
     passenger_name: str
     avatar_url: str
+    passport_photo_url: str = ""
     passport_number: str
     birth_date: str
     age: int

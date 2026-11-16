@@ -17,6 +17,7 @@ from app.domain.models import (
 )
 from app.game.repository import InspectionRepository
 from app.game.strategies import (
+    BirthAgeMismatchStrategy,
     CapitalMismatchStrategy,
     CurrencyMismatchStrategy,
     DialingCodeMismatchStrategy,
@@ -25,6 +26,7 @@ from app.game.strategies import (
     InterpolWatchlistStrategy,
     InvalidIsoFaultStrategy,
     LegitimateStrategy,
+    PhotoMismatchStrategy,
     SpeechContradictionStrategy,
 )
 
@@ -67,7 +69,9 @@ class InspectionService:
             DialingCodeMismatchStrategy(),
             InvalidIsoFaultStrategy(),
             ExpiredPassportStrategy(),
-            SpeechContradictionStrategy()
+            SpeechContradictionStrategy(),
+            PhotoMismatchStrategy(),
+            BirthAgeMismatchStrategy()
         ]
         self._interpol_strategy = InterpolWatchlistStrategy()
         self._active_shift: Optional[ShiftSessionState] = None
@@ -142,12 +146,12 @@ class InspectionService:
             profile = self._wanted_slots[current_idx]
             strategy: FraudStrategy = self._interpol_strategy
         else:
-            available_Pool = [
+            available_pool = [
                 p for p in PASSENGER_PROFILES if p["name"] not in self._used_non_wanted_names
             ]
-            if not available_Pool:
-                available_Pool = PASSENGER_PROFILES
-            profile = random.choice(available_Pool)
+            if not available_pool:
+                available_pool = PASSENGER_PROFILES
+            profile = random.choice(available_pool)
             strategy = self._select_non_wanted_strategy()
 
         avatar_seed = profile["name"].replace(" ", "")
@@ -159,6 +163,9 @@ class InspectionService:
         context = {"profile": profile, "passport_number": passport_number}
         modifications, is_fraud, fraud_type, fraud_reason = strategy.apply(canonical_record, context)
 
+        passport_photo_url = modifications.get("passport_photo_url") or avatar_url
+        displayed_age = modifications.get("forged_age") or profile["age"]
+
         passport = InspectionPassport(
             inspection_id=inspection_id,
             shift_id=shift.shift_id,
@@ -166,9 +173,10 @@ class InspectionService:
             total_passengers=shift.total_passengers,
             passenger_name=profile["name"],
             avatar_url=avatar_url,
+            passport_photo_url=passport_photo_url,
             passport_number=passport_number,
             birth_date=profile["birth"],
-            age=profile["age"],
+            age=displayed_age,
             issue_date="2021-04-10",
             expiration_date=modifications["expiration_date"],
             is_expired=modifications["is_expired"],
@@ -355,7 +363,7 @@ class InspectionService:
         )
 
     def _select_non_wanted_strategy(self) -> FraudStrategy:
-        should_fraud = random.random() < 0.48
+        should_fraud = random.random() < 0.55
         if not should_fraud:
             return LegitimateStrategy()
         return random.choice(self._non_wanted_strategies)

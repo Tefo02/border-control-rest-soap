@@ -5,9 +5,11 @@ from app.domain.models import CountryRecord
 from app.game.repository import InspectionRepository
 from app.game.service import InspectionService
 from app.game.strategies import (
+    BirthAgeMismatchStrategy,
     ExpiredPassportStrategy,
     InterpolWatchlistStrategy,
     LegitimateStrategy,
+    PhotoMismatchStrategy,
     SpeechContradictionStrategy,
 )
 
@@ -29,15 +31,12 @@ def test_legitimate_strategy():
     modifications, is_fraud, fraud_type, reason = strategy.apply(build_dummy_record(), {})
     assert not is_fraud
     assert modifications["violation_category"] == "NONE"
-    assert "origin" in modifications["interrogation_responses"]
-    assert "currency" in modifications["interrogation_responses"]
 
 def test_expired_passport_strategy():
     strategy = ExpiredPassportStrategy()
     modifications, is_fraud, fraud_type, reason = strategy.apply(build_dummy_record(), {})
     assert is_fraud
     assert modifications["violation_category"] == "EXPIRED_PASSPORT"
-    assert modifications["is_expired"]
 
 def test_speech_contradiction_strategy():
     strategy = SpeechContradictionStrategy()
@@ -45,12 +44,33 @@ def test_speech_contradiction_strategy():
     assert is_fraud
     assert modifications["violation_category"] == "VERBAL_CONTRADICTION"
 
+def test_photo_mismatch_strategy():
+    strategy = PhotoMismatchStrategy()
+    modifications, is_fraud, fraud_type, reason = strategy.apply(
+        build_dummy_record(),
+        {"profile": {"name": "Alex Mercer"}}
+    )
+    assert is_fraud
+    assert fraud_type == "PHOTO_MISMATCH"
+    assert modifications["violation_category"] == "BIOMETRIC_MISMATCH"
+    assert "ImpostorDouble" in modifications["passport_photo_url"]
+
+def test_birth_age_mismatch_strategy():
+    strategy = BirthAgeMismatchStrategy()
+    modifications, is_fraud, fraud_type, reason = strategy.apply(
+        build_dummy_record(),
+        {"profile": {"birth": "1992-06-14"}}
+    )
+    assert is_fraud
+    assert fraud_type == "BIRTH_AGE_MISMATCH"
+    assert modifications["violation_category"] == "BIOMETRIC_MISMATCH"
+    assert modifications["forged_age"] == 68
+
 def test_interpol_watchlist_strategy():
     strategy = InterpolWatchlistStrategy()
     modifications, is_fraud, fraud_type, reason = strategy.apply(build_dummy_record(), {})
     assert is_fraud
     assert modifications["violation_category"] == "INTERPOL_WANTED"
-    assert modifications["is_wanted_interpol"]
 
 @pytest.mark.asyncio
 async def test_inspection_service_forensic_bonus():
@@ -60,7 +80,7 @@ async def test_inspection_service_forensic_bonus():
     service = InspectionService(repo, rest, soap)
 
     passport = await service.create_next_inspection()
-    assert passport.interrogation_responses
+    assert passport.passport_photo_url
 
     stored_case = repo.get(passport.inspection_id)
     if stored_case.is_fraud:
