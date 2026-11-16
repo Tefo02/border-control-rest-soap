@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Border Control: 1999 vs. 2026 (Interactive Desk Edition)</title>
+  <title>Border Control: 1999 vs. 2026 (3-Screen Workstation)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
@@ -26,19 +26,17 @@
     </defs>
   </svg>
 
-  <header class="border-b border-slate-800 bg-slate-900 px-6 py-2.5 flex items-center justify-between text-xs font-mono">
-    <div class="flex items-center space-x-4">
-      <div class="flex items-center space-x-2">
-        <span class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span>
-        <span class="font-bold text-slate-200 uppercase tracking-widest text-sm">BORDER CHECKPOINT // BOOTH #04</span>
-      </div>
-      <span class="text-slate-600 hidden sm:inline">|</span>
-      <span class="text-slate-400 hidden sm:inline">MINISTRY OF CUSTOMS &amp; IMMIGRATION</span>
+  <header class="border-b border-slate-800 bg-slate-900 px-5 py-2 flex items-center justify-between text-xs font-mono">
+    <div class="flex items-center space-x-3">
+      <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+      <span class="font-bold text-slate-200 uppercase tracking-widest">BORDER CHECKPOINT // BOOTH #04</span>
+      <span class="text-slate-600 hidden md:inline">|</span>
+      <span class="text-slate-400 hidden md:inline">SHIFT DATE: <strong class="text-slate-200">2026-11-16</strong></span>
     </div>
 
     <div class="flex items-center space-x-5">
       <div>SCORE: <span class="font-bold text-emerald-400 text-sm" x-text="score">0</span> PTS</div>
-      <div>INSPECTED: <span class="font-semibold text-slate-200" x-text="inspectionsCount">0</span></div>
+      <div>PROCESSED: <span class="font-semibold text-slate-200" x-text="inspectionsCount">0</span></div>
       <div>ACCURACY: <span class="font-semibold text-sky-400" x-text="accuracyRate + '%'">100%</span></div>
       <button
         @click="toggleDevDrawer()"
@@ -51,190 +49,387 @@
     </div>
   </header>
 
-  <div class="bg-slate-900/95 border-b border-slate-800 px-6 py-3.5 flex flex-wrap items-center justify-between gap-4">
-    <div class="flex items-start space-x-4 max-w-4xl flex-1">
-      <div class="relative shrink-0">
-        <img :src="passenger ? passenger.avatar_url : 'https://api.dicebear.com/9.x/notionists/svg?seed=Fallback'" alt="Traveler Portrait" class="w-16 h-16 rounded-2xl bg-slate-800 border-2 border-slate-700 shadow-md object-cover">
-        <span class="absolute -bottom-1 -right-1 text-[10px] bg-slate-950 px-1.5 py-0.5 rounded font-mono border border-slate-700 text-amber-400">BOOTH</span>
-      </div>
+  <main class="flex-1 flex flex-col max-w-[1440px] mx-auto w-full p-3 gap-3">
 
-      <div class="flex-1 space-y-2">
-        <div class="relative bg-slate-800 border border-slate-700 rounded-2xl p-3.5 shadow-lg speech-bubble-tail">
-          <div class="flex items-center justify-between mb-1">
-            <span class="text-[11px] font-bold text-sky-400 tracking-wider uppercase" x-text="passenger ? passenger.passenger_name + ' (SPOKEN TESTIMONY)' : 'WAITING IN LINE'"></span>
-            <span class="text-[10px] text-slate-400 font-mono" x-text="passenger ? 'DECLARED PURPOSE: ' + passenger.travel_purpose : ''"></span>
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-3">
+
+      <section class="lg:col-span-5 booth-window-glass rounded-2xl border-2 border-slate-700/90 flex flex-col justify-between overflow-hidden min-h-[305px]">
+        <div class="bg-slate-900/90 border-b border-slate-800 px-4 py-1.5 flex items-center justify-between text-[11px] font-mono">
+          <span class="font-bold text-slate-300 uppercase tracking-wider flex items-center space-x-1.5">
+            <span class="w-2 h-2 rounded-full bg-sky-400"></span>
+            <span>SCREEN 02 // REINFORCED BOOTH GLASS</span>
+          </span>
+          <span class="text-slate-400" x-text="passenger ? ('VISITOR: ' + passenger.passenger_name) : 'BOOTH EMPTY'"></span>
+        </div>
+
+        <div class="p-4 flex-1 flex flex-col justify-between">
+          <div class="flex items-start space-x-4">
+            <div class="relative shrink-0 flex flex-col items-center">
+              <div class="w-24 h-28 rounded-2xl bg-slate-800/90 border-2 border-slate-600 shadow-2xl overflow-hidden flex items-end justify-center">
+                <img :src="passenger ? passenger.avatar_url : 'https://api.dicebear.com/9.x/notionists/svg?seed=Booth'" alt="Traveler at Window" class="w-24 h-24 object-cover">
+              </div>
+              <div class="w-16 h-2.5 booth-speaker-grille rounded-full border border-slate-700 mt-2"></div>
+            </div>
+
+            <div class="flex-1 space-y-2">
+              <div
+                @click="cycleDialogueOnBubbleClick()"
+                class="relative bg-slate-800/95 hover:bg-slate-800 border border-slate-600 rounded-2xl p-3.5 shadow-xl cursor-pointer transition group"
+              >
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-[10px] font-bold text-sky-400 tracking-wider uppercase" x-text="passenger ? passenger.passenger_name : 'INTERCOM'"></span>
+                  <span class="text-[9px] font-mono text-slate-400 group-hover:text-sky-300">[CLICK BUBBLE TO TALK]</span>
+                </div>
+                <p class="text-xs sm:text-sm font-medium text-slate-100 italic leading-snug" x-text="currentSpeech ? '“' + currentSpeech + '”' : '...'"></p>
+              </div>
+
+              <div x-show="passenger && !areDocumentsHandedOver" class="pt-1">
+                <button
+                  @click="requestDocumentsFromTraveler()"
+                  class="w-full py-2.5 px-4 bg-amber-600 hover:bg-amber-500 text-slate-950 font-black rounded-xl shadow-lg text-xs font-mono uppercase tracking-wider transition flex items-center justify-center space-x-2 animate-bounce"
+                >
+                  <span>&#128196;</span>
+                  <span>"PAPERS, PLEASE" — REQUEST DOCUMENTS [SPACE]</span>
+                </button>
+              </div>
+
+              <div x-show="passenger && areDocumentsHandedOver && !verdictReport" class="flex flex-wrap gap-1.5 pt-0.5">
+                <button
+                  @click="askTraveler('origin')"
+                  :class="activeInterrogationTopic === 'origin' ? 'bg-sky-900 border-sky-400 text-white' : 'bg-slate-900/90 border-slate-700 text-slate-300 hover:border-slate-500'"
+                  class="px-2 py-1 rounded border text-[10px] font-mono transition"
+                >
+                  [Ask Origin &amp; DDI]
+                </button>
+                <button
+                  @click="askTraveler('currency')"
+                  :class="activeInterrogationTopic === 'currency' ? 'bg-sky-900 border-sky-400 text-white' : 'bg-slate-900/90 border-slate-700 text-slate-300 hover:border-slate-500'"
+                  class="px-2 py-1 rounded border text-[10px] font-mono transition"
+                >
+                  [Ask Currency]
+                </button>
+                <button
+                  @click="askTraveler('purpose')"
+                  :class="activeInterrogationTopic === 'purpose' ? 'bg-sky-900 border-sky-400 text-white' : 'bg-slate-900/90 border-slate-700 text-slate-300 hover:border-slate-500'"
+                  class="px-2 py-1 rounded border text-[10px] font-mono transition"
+                >
+                  [Ask Purpose]
+                </button>
+              </div>
+
+              <template x-if="verdictReport">
+                <div :class="verdictReport.is_correct ? 'bg-emerald-950/90 border-emerald-600' : 'bg-rose-950/90 border-rose-600'" class="p-2.5 rounded-xl border text-[11px] font-mono space-y-2">
+                  <div class="font-bold text-white" x-text="(verdictReport.score_delta > 0 ? '+' + verdictReport.score_delta : verdictReport.score_delta) + ' PTS // ' + verdictReport.technical_explanation"></div>
+                  <button @click="dismissModalAndNext()" class="w-full py-1.5 bg-sky-600 hover:bg-sky-500 text-white font-black rounded-lg text-xs uppercase tracking-wider transition">
+                    CALL NEXT TRAVELER [ENTER] &rarr;
+                  </button>
+                </div>
+              </template>
+            </div>
           </div>
-          <p class="text-sm font-medium text-slate-100 italic" x-text="currentSpeech ? '“' + currentSpeech + '”' : 'Next traveler approaching checkpoint...'"></p>
         </div>
 
-        <div class="flex flex-wrap items-center gap-2 pt-1 pl-2" x-show="passenger && !verdictReport">
-          <span class="text-[10px] font-mono text-slate-400 uppercase tracking-wider">INTERROGATE:</span>
-          <button
-            @click="askTraveler('origin')"
-            :class="activeInterrogationTopic === 'origin' ? 'bg-sky-900/70 border-sky-500 text-sky-200' : 'bg-slate-800/80 border-slate-700 text-slate-300 hover:bg-slate-800'"
-            class="px-2.5 py-1 rounded-lg border text-[11px] font-mono transition"
-          >
-            [? Verify Origin &amp; DDI]
-          </button>
-          <button
-            @click="askTraveler('currency')"
-            :class="activeInterrogationTopic === 'currency' ? 'bg-sky-900/70 border-sky-500 text-sky-200' : 'bg-slate-800/80 border-slate-700 text-slate-300 hover:bg-slate-800'"
-            class="px-2.5 py-1 rounded-lg border text-[11px] font-mono transition"
-          >
-            [? Question Currency]
-          </button>
-          <button
-            @click="askTraveler('purpose')"
-            :class="activeInterrogationTopic === 'purpose' ? 'bg-sky-900/70 border-sky-500 text-sky-200' : 'bg-slate-800/80 border-slate-700 text-slate-300 hover:bg-slate-800'"
-            class="px-2.5 py-1 rounded-lg border text-[11px] font-mono transition"
-          >
-            [? Demand Purpose Details]
-          </button>
+        <div class="bg-slate-950/95 border-t-2 border-slate-700 px-4 py-1.5 flex items-center justify-between text-[10px] font-mono text-slate-400">
+          <span>PASS-THROUGH TRAY SLOT</span>
+          <span x-text="!areDocumentsHandedOver ? 'WAITING FOR HANDOVER' : (verdictStamp ? 'DRAG DOCS UP TO DESK SLOT TO RETURN' : 'DOCUMENTS ON DESK BELOW')"></span>
         </div>
-      </div>
-    </div>
+      </section>
 
-    <div class="flex items-center space-x-3" x-show="!verdictReport">
-      <button @click="submitDecision('APPROVE', null)" :disabled="isSubmitting || verdictStamp !== null" class="px-5 py-3 bg-emerald-700 hover:bg-emerald-600 disabled:bg-slate-800 disabled:text-slate-600 text-white font-black rounded-xl shadow-lg shadow-emerald-950 flex items-center space-x-2 transition tracking-wider text-xs border border-emerald-500/40">
-        <span>&#10003;</span>
-        <span>STAMP APPROVE [A]</span>
-      </button>
-      <button @click="openDenialCitationPicker()" :disabled="isSubmitting || verdictStamp !== null" class="px-5 py-3 bg-rose-700 hover:bg-rose-600 disabled:bg-slate-800 disabled:text-slate-600 text-white font-black rounded-xl shadow-lg shadow-rose-950 flex items-center space-x-2 transition tracking-wider text-xs border border-rose-500/40">
-        <span>&#10007;</span>
-        <span>STAMP DENY [D]</span>
-      </button>
-    </div>
+      <section class="lg:col-span-7 crt-outer-chassis rounded-2xl p-3 flex flex-col justify-between min-h-[305px]">
+        <div class="flex items-center justify-between px-2 pb-2 text-xs font-mono">
+          <div class="flex items-center space-x-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]"></span>
+            <span class="font-bold text-slate-200 tracking-wider">SCREEN 03 // IBM OS/390 CRT TERMINAL &amp; SPOOLER</span>
+          </div>
 
-    <div x-show="verdictReport" class="flex items-center space-x-3">
-      <button @click="dismissModalAndNext()" class="px-6 py-3 bg-sky-600 hover:bg-sky-500 text-white font-black rounded-xl shadow-lg flex items-center space-x-2 transition tracking-wider text-xs font-mono animate-pulse">
-        <span>CALL NEXT TRAVELER [ENTER] &rarr;</span>
-      </button>
-    </div>
-  </div>
-
-  <div x-show="showCitationPicker" class="bg-rose-950/90 border-b border-rose-700 px-6 py-3 flex flex-wrap items-center justify-between gap-3">
-    <div class="flex items-center space-x-2 text-xs font-mono text-rose-200">
-      <span class="font-black uppercase tracking-wider px-2 py-0.5 bg-rose-800 rounded text-white">DETENTION CITATION PROTOCOL</span>
-      <span>Select the primary anomaly detected (+150 PTS Forensic Bonus for exact match):</span>
-    </div>
-    <div class="flex flex-wrap items-center gap-2 font-mono text-xs">
-      <button @click="confirmDenialWithCategory('WSDL_MISMATCH')" class="px-3 py-1.5 bg-rose-900 hover:bg-rose-800 border border-rose-500 rounded-lg text-white font-bold transition">
-        [1] WSDL Contract Mismatch (Cap/Curr/DDI/ISO)
-      </button>
-      <button @click="confirmDenialWithCategory('EXPIRED_PASSPORT')" class="px-3 py-1.5 bg-rose-900 hover:bg-rose-800 border border-rose-500 rounded-lg text-white font-bold transition">
-        [2] Expired Passport
-      </button>
-      <button @click="confirmDenialWithCategory('VERBAL_CONTRADICTION')" class="px-3 py-1.5 bg-rose-900 hover:bg-rose-800 border border-rose-500 rounded-lg text-white font-bold transition">
-        [3] Verbal Testimony Contradiction
-      </button>
-      <button @click="confirmDenialWithCategory('INTERPOL_WANTED')" class="px-3 py-1.5 bg-rose-900 hover:bg-rose-800 border border-rose-500 rounded-lg text-white font-bold transition">
-        [4] Interpol Red Notice Warrant
-      </button>
-      <button @click="showCitationPicker = false" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition">
-        Cancel
-      </button>
-    </div>
-  </div>
-
-  <template x-if="verdictReport">
-    <div :class="verdictReport.is_correct ? 'bg-emerald-950/90 border-emerald-700' : 'bg-rose-950/90 border-rose-700'" class="border-b px-6 py-3 flex flex-wrap items-center justify-between gap-4">
-      <div class="flex items-center space-x-3">
-        <div :class="verdictReport.is_correct ? 'bg-emerald-800 text-emerald-200' : 'bg-rose-800 text-rose-200'" class="w-8 h-8 rounded-lg flex items-center justify-center font-black text-lg">
-          <span x-text="verdictReport.is_correct ? '&#10003;' : '&#10007;'"></span>
+          <div class="flex space-x-1.5">
+            <button @click="activeWindow = 'mainframe'" :class="activeWindow === 'mainframe' ? 'bg-emerald-950 text-emerald-300 border border-emerald-600' : 'bg-slate-800 text-slate-400 hover:text-slate-200'" class="px-2.5 py-0.5 rounded text-[11px] font-mono font-bold transition">
+              MAINFRAME.EXE [SOAP]
+            </button>
+            <button @click="activeWindow = 'interpol'" :class="activeWindow === 'interpol' ? 'bg-blue-950 text-blue-300 border border-blue-600' : 'bg-slate-800 text-slate-400 hover:text-slate-200'" class="px-2.5 py-0.5 rounded text-[11px] font-mono font-bold transition">
+              WATCHLIST.EXE [REST]
+            </button>
+          </div>
         </div>
-        <div class="text-xs font-mono">
-          <div class="font-bold text-white" x-text="(verdictReport.score_delta > 0 ? '+' + verdictReport.score_delta : verdictReport.score_delta) + ' PTS // ' + verdictReport.technical_explanation"></div>
-        </div>
-      </div>
-      <span class="text-[11px] font-mono text-slate-300">Documents remain unlocked on the desk for post-verdict inspection.</span>
-    </div>
-  </template>
 
-  <main class="flex-1 p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-7xl mx-auto w-full">
+        <div class="crt-inner-bezel rounded-xl flex-1 flex flex-col overflow-hidden">
+
+          <div x-show="activeWindow === 'mainframe'" class="crt-monitor p-3.5 flex-1 flex flex-col justify-between font-crt text-lg">
+            <div class="flex items-start space-x-3">
+              <div class="shrink-0 text-center">
+                <img :src="passenger ? passenger.avatar_url : 'https://api.dicebear.com/9.x/notionists/svg?seed=CRT'" alt="CRT Fax" class="w-14 h-14 rounded crt-phosphor-portrait object-cover">
+                <span class="text-[10px] text-emerald-500 block mt-0.5">FAX-FEED</span>
+              </div>
+
+              <div class="flex-1 overflow-y-auto max-h-32 space-y-0.5 text-base text-emerald-400 leading-tight crt-text-glow">
+                <template x-for="log in terminalLogs.slice(-6)" :key="log.id">
+                  <div :class="log.isError ? 'text-rose-400' : 'text-emerald-300'" x-text="log.text"></div>
+                </template>
+              </div>
+            </div>
+
+            <div class="border-t border-emerald-950 pt-2 mt-2 relative z-10">
+              <div class="flex items-center space-x-2">
+                <span class="text-emerald-400 font-bold text-xl">&gt;</span>
+                <input
+                  type="text"
+                  x-model="manualCommand"
+                  @keydown.enter="executeManualSoapQuery()"
+                  placeholder="TYPE ISO CODE (EX: JP, BR, DE) TO PRINT WSDL RECORD..."
+                  class="flex-1 bg-black/85 text-emerald-300 border border-emerald-700 rounded px-2.5 py-1 font-crt text-lg uppercase tracking-wider focus:outline-none focus:border-emerald-400"
+                >
+                <button @click="executeManualSoapQuery()" :disabled="isQuerying || isPrintingSoapSlip" class="px-3.5 py-1 bg-emerald-900 hover:bg-emerald-800 border border-emerald-500 text-emerald-100 text-xs font-bold rounded transition font-mono">
+                  <span x-text="isQuerying ? 'SOAP POST...' : (isPrintingSoapSlip ? 'PRINTING...' : 'QUERY &amp; PRINT')"></span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div x-show="activeWindow === 'interpol'" class="bg-slate-950 p-4 flex-1 flex flex-col justify-between font-mono text-xs">
+            <div class="flex items-center justify-between border-b border-blue-900/60 pb-2">
+              <span class="text-blue-400 font-bold">INTERPOL BIOMETRIC WATCHLIST // REST v2.4</span>
+              <span class="text-[10px] text-slate-500">PRINTS REPORT TO DESK</span>
+            </div>
+
+            <div class="flex items-center justify-between bg-slate-900 p-3 rounded-xl border border-slate-800 my-2">
+              <div>
+                <div class="text-[10px] text-slate-400">TARGET PASSPORT NUMBER</div>
+                <div class="text-sm font-bold text-white" x-text="passenger && areDocumentsHandedOver ? passenger.passport_number : 'REQUEST DOCUMENTS FIRST'"></div>
+              </div>
+              <button
+                @click="queryInterpol()"
+                :disabled="isInterpolQuerying || !areDocumentsHandedOver"
+                class="px-4 py-2 bg-blue-700 hover:bg-blue-600 disabled:bg-slate-800 disabled:text-slate-600 font-bold rounded-lg text-white text-xs transition"
+              >
+                <span x-text="isInterpolQuerying ? 'SCANNING...' : 'SCAN &amp; PRINT SLIP'"></span>
+              </button>
+            </div>
+
+            <div class="text-[11px] text-slate-400">
+              <span x-text="interpolData ? ('LAST SCAN: ' + interpolData.passport_number + ' -> ' + (interpolData.is_wanted ? 'RED NOTICE PRINTED' : 'CLEARED SLIP PRINTED')) : 'Ready to query REST biometric endpoint.'"></span>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="dot-matrix-printer-slot mt-2 rounded-lg px-3 py-1.5 flex items-center justify-between text-[11px] font-mono">
+          <div class="flex items-center space-x-2">
+            <span class="w-2 h-2 rounded-full" :class="isPrintingSoapSlip ? 'bg-amber-400 animate-ping' : 'bg-emerald-500'"></span>
+            <span class="font-bold text-slate-300">DOT-MATRIX PRINTER // LPT1:</span>
+            <span :class="isPrintingSoapSlip ? 'text-amber-300 font-bold animate-pulse' : 'text-slate-400'" x-text="isPrintingSoapSlip ? 'PRINTING SOAP WSDL RECORD ONTO DESK (1.4s)...' : 'IDLE — OUTPUT EJECTS TO METALLIC DESK BELOW'"></span>
+          </div>
+          <span x-show="isDevDrawerOpen && mainframeData" class="text-amber-400" x-text="mainframeData ? (mainframeData.soap_telemetry.latency_ms + 'ms | ' + mainframeData.soap_telemetry.bytes_received + 'B') : ''"></span>
+        </div>
+      </section>
+
+    </div>
 
     <section
       x-ref="deskSurface"
       @pointermove="moveDocDrag($event)"
       @pointerup="stopDocDrag($event)"
       @pointercancel="stopDocDrag($event)"
-      class="lg:col-span-6 customs-desk-surface rounded-2xl border border-slate-700 min-h-[490px] flex flex-col justify-between p-4"
+      class="flex-1 customs-desk-surface rounded-2xl border-2 border-slate-700 min-h-[455px] relative select-none"
     >
-      <div class="flex items-center justify-between border-b border-slate-800/80 pb-2 z-0 pointer-events-none">
-        <div class="text-[11px] font-bold text-slate-400 tracking-wider uppercase flex items-center space-x-2">
-          <span class="w-2 h-2 rounded-full bg-amber-400"></span>
-          <span>CUSTOMS INSPECTION DESK (DRAG DOCUMENTS TO INSPECT)</span>
+      <div
+        :class="{ 'slot-highlight': dragState.isHoveringReturnSlot }"
+        class="booth-transfer-slot absolute top-0 left-6 w-[510px] max-w-[90%] h-9 rounded-b-xl px-4 flex items-center justify-between text-[11px] font-mono z-10 pointer-events-none"
+      >
+        <div class="flex items-center space-x-2">
+          <span class="w-2 h-2 rounded-full" :class="verdictStamp ? 'bg-emerald-400 animate-ping' : 'bg-amber-400'"></span>
+          <span class="font-bold text-slate-200 uppercase tracking-wider" x-text="verdictStamp ? 'DROP STAMPED PASSPORT &amp; MANIFEST HERE TO RETURN TO TRAVELER &uarr;' : 'BOOTH WINDOW SLOT (DOCUMENTS ENTER &amp; EXIT HERE)'"></span>
         </div>
-        <span x-show="isDevDrawerOpen" class="text-[10px] text-amber-400 font-mono">DEV MODE: 2026 REST PAYLOADS</span>
       </div>
 
-      <template x-if="passenger">
+      <div class="absolute bottom-3 left-4 text-[10px] font-mono text-slate-400 pointer-events-none z-0">
+        <span>SCREEN 01 // METALLIC INSPECTION DESK — DRAG DOCUMENTS FREELY &bull; MOVE PASSPORT TO STAMP BAY ON RIGHT</span>
+      </div>
+
+      <div
+        :class="{ 'bay-ready': dragState.isPassportInStampBay }"
+        class="stamp-station-bay absolute right-3 top-3 bottom-3 w-[345px] rounded-xl p-3 flex flex-col justify-between z-10 pointer-events-none"
+      >
+        <div class="border-b border-slate-700/80 pb-2 flex items-center justify-between">
+          <div>
+            <div class="text-[11px] font-black text-amber-400 font-mono uppercase tracking-wider">PHYSICAL STAMPING BAY</div>
+            <div class="text-[10px] text-slate-400 font-mono" x-text="dragState.isPassportInStampBay ? 'PASSPORT ALIGNED UNDER STAMP HEAD' : 'DRAG PASSPORT INTO THIS BAY TO STAMP'"></div>
+          </div>
+          <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold" :class="dragState.isPassportInStampBay ? 'bg-emerald-950 text-emerald-300 border border-emerald-700' : 'bg-slate-800 text-slate-400'" x-text="dragState.isPassportInStampBay ? 'READY' : 'EMPTY'"></span>
+        </div>
+
+        <div x-show="showCitationPicker" class="bg-rose-950/95 border border-rose-600 rounded-xl p-2.5 space-y-1.5 pointer-events-auto z-40 shadow-2xl font-mono text-[11px]">
+          <div class="text-rose-200 font-bold uppercase text-[10px]">SELECT DETENTION CAUSE (+150 PTS BONUS):</div>
+          <button @click="confirmDenialWithCategory('WSDL_MISMATCH')" class="w-full text-left px-2.5 py-1.5 bg-rose-900 hover:bg-rose-800 border border-rose-500 rounded text-white font-semibold transition">
+            [1] SOAP WSDL Mismatch (Cap/Curr/DDI/ISO)
+          </button>
+          <button @click="confirmDenialWithCategory('EXPIRED_PASSPORT')" class="w-full text-left px-2.5 py-1.5 bg-rose-900 hover:bg-rose-800 border border-rose-500 rounded text-white font-semibold transition">
+            [2] Expired Passport Document
+          </button>
+          <button @click="confirmDenialWithCategory('VERBAL_CONTRADICTION')" class="w-full text-left px-2.5 py-1.5 bg-rose-900 hover:bg-rose-800 border border-rose-500 rounded text-white font-semibold transition">
+            [3] Spoken Testimony Contradiction
+          </button>
+          <button @click="confirmDenialWithCategory('INTERPOL_WANTED')" class="w-full text-left px-2.5 py-1.5 bg-rose-900 hover:bg-rose-800 border border-rose-500 rounded text-white font-semibold transition">
+            [4] Interpol Red Notice Warrant
+          </button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5 pt-2 border-t border-slate-700/80 pointer-events-auto z-40">
+          <button
+            @click="stampPassportApprove()"
+            :disabled="!areDocumentsHandedOver || isSubmitting"
+            class="py-3 px-3 bg-emerald-800 hover:bg-emerald-700 disabled:bg-slate-800 disabled:text-slate-600 border-b-4 border-emerald-950 active:translate-y-0.5 text-white font-black rounded-xl shadow-lg text-xs font-mono uppercase tracking-wider transition flex flex-col items-center"
+          >
+            <span class="text-base">&#9660; ADMIT</span>
+            <span class="text-[9px] text-emerald-200 font-normal">GREEN INK STAMP</span>
+          </button>
+
+          <button
+            @click="openDenialCitationPicker()"
+            :disabled="!areDocumentsHandedOver || isSubmitting"
+            class="py-3 px-3 bg-rose-800 hover:bg-rose-700 disabled:bg-slate-800 disabled:text-slate-600 border-b-4 border-rose-950 active:translate-y-0.5 text-white font-black rounded-xl shadow-lg text-xs font-mono uppercase tracking-wider transition flex flex-col items-center"
+          >
+            <span class="text-base">&#9660; DETAIN</span>
+            <span class="text-[9px] text-rose-200 font-normal">RED INK STAMP</span>
+          </button>
+        </div>
+      </div>
+
+      <article
+        x-ref="rulebookDoc"
+        @pointerdown="startDocDrag($event, 'rulebook')"
+        :class="{ 'is-dragging': isDocDragging('rulebook') }"
+        :style="getDocStyle('rulebook')"
+        class="draggable-document rulebook-document-card rounded-xl p-3.5"
+      >
+        <div class="flex items-center justify-between border-b border-amber-700/60 pb-1.5 mb-2 font-mono text-[10px]">
+          <span class="font-black text-amber-300 uppercase tracking-wider">REGULATION MANUAL // 44-B</span>
+          <span class="px-1.5 py-0.5 bg-amber-950 text-amber-300 rounded text-[9px]">HANDBOOK</span>
+        </div>
+        <ul class="space-y-1.5 text-[10px] font-mono text-amber-100/90 leading-snug">
+          <li>&bull; <strong>1. Request Papers:</strong> Click <em>"Papers, Please"</em> at the window.</li>
+          <li>&bull; <strong>2. Query SOAP:</strong> Type ISO in CRT to print WSDL slip onto desk.</li>
+          <li>&bull; <strong>3. Compare:</strong> Check Capital, Currency, DDI, Expiration &amp; Speech.</li>
+          <li>&bull; <strong>4. Stamp &amp; Return:</strong> Drag Passport to Stamp Bay, stamp it, and drag docs back to top window slot!</li>
+        </ul>
+      </article>
+
+      <template x-if="printedSoapSlip">
+        <article
+          x-ref="soapPrintoutDoc"
+          @pointerdown="startDocDrag($event, 'soapPrintout')"
+          :class="{ 'is-dragging': isDocDragging('soapPrintout') }"
+          :style="getDocStyle('soapPrintout')"
+          class="draggable-document soap-printout-slip px-5 py-3 font-mono text-xs"
+        >
+          <div class="border-b border-slate-400 pb-1 mb-2 flex items-center justify-between text-[10px] text-slate-600">
+            <span class="font-bold text-slate-900">WSDL SOAP 1.1 PRINTOUT</span>
+            <span x-text="'ISO: ' + printedSoapSlip.queriedIso"></span>
+          </div>
+
+          <template x-if="!printedSoapSlip.isFault">
+            <div class="space-y-1 text-[11px] text-slate-900">
+              <div>COUNTRY: <strong x-text="printedSoapSlip.name"></strong></div>
+              <div>CAPITAL: <strong class="underline" x-text="printedSoapSlip.capital"></strong></div>
+              <div>CURRENCY: <strong x-text="printedSoapSlip.currency"></strong></div>
+              <div>PHONE DDI: <strong x-text="printedSoapSlip.phone"></strong></div>
+            </div>
+          </template>
+
+          <template x-if="printedSoapSlip.isFault">
+            <div class="text-[11px] font-bold text-rose-700 py-2" x-text="printedSoapSlip.faultMessage"></div>
+          </template>
+
+          <div class="mt-2 pt-1 border-t border-dashed border-slate-400 text-[9px] text-slate-500 flex justify-between">
+            <span>OORSPRONG MAINFRAME</span>
+            <span>TRACTOR FEED</span>
+          </div>
+        </article>
+      </template>
+
+      <template x-if="printedInterpolSlip">
+        <article
+          x-ref="interpolSlipDoc"
+          @pointerdown="startDocDrag($event, 'interpolSlip')"
+          :class="{ 'is-dragging': isDocDragging('interpolSlip') }"
+          :style="getDocStyle('interpolSlip')"
+          class="draggable-document interpol-printout-slip rounded-b-lg p-3 font-mono text-xs"
+        >
+          <div class="border-b border-rose-300 pb-1 mb-1.5 flex items-center justify-between text-[10px]">
+            <span class="font-black text-rose-900">INTERPOL DISPATCH</span>
+            <span x-text="printedInterpolSlip.passportNumber"></span>
+          </div>
+          <div class="text-[11px] font-bold" :class="printedInterpolSlip.isWanted ? 'text-rose-700' : 'text-emerald-800'" x-text="printedInterpolSlip.isWanted ? 'RED NOTICE WARRANT ACTIVE' : 'STATUS: CLEARED'"></div>
+          <div class="text-[10px] text-slate-700 mt-1 leading-tight" x-text="printedInterpolSlip.wantedReason"></div>
+        </article>
+      </template>
+
+      <template x-if="passenger && areDocumentsHandedOver">
         <div>
           <article
             x-ref="passportDoc"
             @pointerdown="startDocDrag($event, 'passport')"
             :class="{ 'is-dragging': isDocDragging('passport') }"
             :style="getDocStyle('passport')"
-            class="draggable-document passport-document-card rounded-xl p-2.5"
+            class="draggable-document document-slide-enter passport-document-card rounded-xl p-2"
           >
-            <div class="flex items-center justify-between px-2 pb-1.5 text-[10px] font-mono text-amber-300/90">
-              <span class="font-bold tracking-widest uppercase">E-PASSPORT // 2026 EDITION</span>
+            <div class="flex items-center justify-between px-2 pb-1 text-[10px] font-mono text-amber-300/90">
+              <span class="font-bold tracking-widest uppercase">E-PASSPORT // 2026</span>
               <span x-text="'NO. ' + passenger.passport_number"></span>
             </div>
 
-            <div class="passport-inner-page rounded-lg p-3.5 relative">
+            <div class="passport-inner-page rounded-lg p-3 relative">
               <svg class="absolute inset-0 w-full h-full opacity-15 pointer-events-none" viewBox="0 0 320 220" preserveAspectRatio="none">
-                <path d="M0,40 Q80,5 160,40 T320,40 M0,80 Q80,45 160,80 T320,80 M0,120 Q80,85 160,120 T320,120 M0,160 Q80,125 160,160 T320,160" fill="none" stroke="#92400e" stroke-width="1.2" />
-                <circle cx="255" cy="70" r="42" fill="none" stroke="#b45309" stroke-width="0.9" stroke-dasharray="3,2" />
-                <circle cx="255" cy="70" r="28" fill="none" stroke="#b45309" stroke-width="0.7" />
+                <path d="M0,40 Q80,5 160,40 T320,40 M0,80 Q80,45 160,80 T320,80 M0,120 Q80,85 160,120 T320,120" fill="none" stroke="#92400e" stroke-width="1.2" />
+                <circle cx="245" cy="65" r="38" fill="none" stroke="#b45309" stroke-width="0.9" stroke-dasharray="3,2" />
               </svg>
 
-              <div class="relative z-10 flex items-center justify-between border-b border-amber-900/20 pb-2 mb-2.5">
+              <div class="relative z-10 flex items-center justify-between border-b border-amber-900/20 pb-1.5 mb-2">
                 <div class="flex items-center space-x-2">
-                  <img :src="passenger.flag_url" alt="Flag" class="w-7 h-5 object-cover rounded border border-slate-400 shadow-sm pointer-events-none">
+                  <img :src="passenger.flag_url" alt="Flag" class="w-6 h-4 object-cover rounded border border-slate-400 pointer-events-none">
                   <div>
-                    <div class="text-xs font-black text-slate-900 uppercase tracking-wide" x-text="passenger.declared_country_name"></div>
-                    <div class="text-[9px] font-mono text-slate-600" x-text="'ISSUING CAPITAL: ' + passenger.declared_capital"></div>
+                    <div class="text-xs font-black text-slate-900 uppercase" x-text="passenger.declared_country_name"></div>
+                    <div class="text-[9px] font-mono text-slate-600" x-text="'CAP: ' + passenger.declared_capital"></div>
                   </div>
                 </div>
-                <span class="px-2 py-0.5 rounded bg-amber-900 text-amber-100 font-mono text-[11px] font-bold" x-text="'ISO: ' + passenger.declared_iso_code"></span>
+                <span class="px-2 py-0.5 rounded bg-amber-900 text-amber-100 font-mono text-[10px] font-bold" x-text="'ISO: ' + passenger.declared_iso_code"></span>
               </div>
 
-              <div class="relative z-10 flex space-x-3 mb-2.5">
+              <div class="relative z-10 flex space-x-2.5 mb-2">
                 <div class="relative shrink-0">
-                  <img :src="passenger.avatar_url" alt="Biometric Photo" class="w-20 h-24 rounded border border-amber-900/40 bg-amber-50 object-cover pointer-events-none">
-                  <div class="hologram-seal absolute -bottom-1.5 -right-1.5 pointer-events-none"></div>
+                  <img :src="passenger.avatar_url" alt="Biometric Photo" class="w-16 h-20 rounded border border-amber-900/40 bg-amber-50 object-cover pointer-events-none">
+                  <div class="hologram-seal absolute -bottom-1 -right-1 pointer-events-none"></div>
                 </div>
 
-                <div class="flex-1 text-[11px] font-mono space-y-1 text-slate-800">
+                <div class="flex-1 text-[10px] font-mono space-y-0.5 text-slate-800">
                   <div>
-                    <span class="text-[9px] text-slate-500 block uppercase">Full Name</span>
+                    <span class="text-[8px] text-slate-500 block uppercase">Bearer Name</span>
                     <span class="font-bold text-slate-900" x-text="passenger.passenger_name"></span>
                   </div>
                   <div class="grid grid-cols-2 gap-1">
                     <div>
-                      <span class="text-[9px] text-slate-500 block uppercase">Birth Date</span>
+                      <span class="text-[8px] text-slate-500 block uppercase">Birth</span>
                       <span x-text="passenger.birth_date"></span>
                     </div>
                     <div>
-                      <span class="text-[9px] text-slate-500 block uppercase">Age</span>
+                      <span class="text-[8px] text-slate-500 block uppercase">Age</span>
                       <span x-text="passenger.age + ' YRS'"></span>
                     </div>
                   </div>
                   <div>
-                    <span class="text-[9px] text-slate-500 block uppercase">Valid Until</span>
+                    <span class="text-[8px] text-slate-500 block uppercase">Valid Until</span>
                     <span class="font-bold text-slate-900" x-text="passenger.expiration_date"></span>
                   </div>
                 </div>
               </div>
 
-              <div class="relative z-10 bg-amber-950/10 border border-amber-900/25 rounded px-2 py-1.5 font-mono text-[9.5px] leading-tight tracking-widest text-slate-800 select-all">
+              <div class="relative z-10 bg-amber-950/10 border border-amber-900/25 rounded px-1.5 py-1 font-mono text-[8.5px] leading-tight tracking-widest text-slate-800">
                 <div x-text="mrzLines()[0]" class="truncate"></div>
                 <div x-text="mrzLines()[1]" class="truncate"></div>
               </div>
 
               <template x-if="verdictStamp">
                 <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
-                  <div :class="verdictStamp === 'APPROVE' ? 'stamp-impression-approved' : 'stamp-impression-denied'" class="px-5 py-2 rounded font-black text-2xl uppercase tracking-widest shadow-md">
+                  <div :class="verdictStamp === 'APPROVE' ? 'stamp-impression-approved' : 'stamp-impression-denied'" class="px-4 py-1.5 rounded font-black text-xl uppercase tracking-widest shadow-md">
                     <span x-text="verdictStamp === 'APPROVE' ? 'ADMITTED' : 'DETAINED'"></span>
                   </div>
                 </div>
@@ -247,203 +442,55 @@
             @pointerdown="startDocDrag($event, 'manifest')"
             :class="{ 'is-dragging': isDocDragging('manifest') }"
             :style="getDocStyle('manifest')"
-            class="draggable-document manifest-document-card rounded-b-xl p-4"
+            class="draggable-document document-slide-enter manifest-document-card rounded-b-xl p-3.5"
           >
-            <div class="flex items-center justify-between border-b border-slate-300 pb-2 mb-2.5">
+            <div class="flex items-center justify-between border-b border-slate-300 pb-1.5 mb-2">
               <div>
-                <div class="text-[11px] font-black text-slate-900 uppercase tracking-wider">CUSTOMS &amp; CURRENCY MANIFEST</div>
-                <div class="text-[9px] font-mono text-slate-500">FORM 2026-B // BORDER DECLARATION</div>
+                <div class="text-[10px] font-black text-slate-900 uppercase tracking-wider">CURRENCY &amp; DDI MANIFEST</div>
+                <div class="text-[8px] font-mono text-slate-500">CUSTOMS FORM 2026-B</div>
               </div>
-              <span class="px-1.5 py-0.5 bg-slate-800 text-white font-mono text-[9px] rounded">TRANSIT</span>
+              <span class="px-1.5 py-0.5 bg-slate-800 text-white font-mono text-[8px] rounded">ENTRY</span>
             </div>
 
-            <div class="grid grid-cols-2 gap-2.5 mb-3 font-mono text-xs">
-              <div class="bg-white p-2 rounded border border-slate-300">
-                <span class="text-[9px] text-slate-500 block uppercase">Declared Currency</span>
-                <span class="text-sm font-black text-slate-900" x-text="passenger.declared_currency_code"></span>
+            <div class="grid grid-cols-2 gap-2 mb-2 font-mono text-xs">
+              <div class="bg-white p-1.5 rounded border border-slate-300">
+                <span class="text-[8px] text-slate-500 block uppercase">Currency</span>
+                <span class="text-xs font-black text-slate-900" x-text="passenger.declared_currency_code"></span>
               </div>
-              <div class="bg-white p-2 rounded border border-slate-300">
-                <span class="text-[9px] text-slate-500 block uppercase">Telecom Prefix (DDI)</span>
-                <span class="text-sm font-black text-slate-900" x-text="'+' + passenger.declared_phone_code"></span>
+              <div class="bg-white p-1.5 rounded border border-slate-300">
+                <span class="text-[8px] text-slate-500 block uppercase">Phone DDI</span>
+                <span class="text-xs font-black text-slate-900" x-text="'+' + passenger.declared_phone_code"></span>
               </div>
             </div>
 
-            <div class="bg-slate-200/70 p-2 rounded border border-slate-300 text-[10px] font-mono text-slate-700 mb-3 space-y-1">
+            <div class="bg-slate-200/70 p-1.5 rounded border border-slate-300 text-[9.5px] font-mono text-slate-700 mb-2 space-y-0.5">
               <div class="flex justify-between">
-                <span>DECLARED CAPITAL:</span>
+                <span>CAPITAL:</span>
                 <span class="font-bold text-slate-900" x-text="passenger.declared_capital"></span>
               </div>
               <div class="flex justify-between">
                 <span>PURPOSE:</span>
-                <span class="font-semibold text-slate-900 truncate max-w-[155px]" x-text="passenger.travel_purpose"></span>
+                <span class="font-semibold text-slate-900 truncate max-w-[135px]" x-text="passenger.travel_purpose"></span>
               </div>
             </div>
 
-            <div class="bg-white p-2 rounded border border-slate-300 flex flex-col items-center">
-              <svg class="w-full h-8" viewBox="0 0 220 28" preserveAspectRatio="none">
+            <div class="bg-white p-1.5 rounded border border-slate-300 flex flex-col items-center">
+              <svg class="w-full h-6" viewBox="0 0 220 28" preserveAspectRatio="none">
                 <template x-for="(bar, idx) in barcodeBars()" :key="idx">
                   <rect :x="bar.x" y="2" :width="bar.width" height="24" fill="#0f172a" />
                 </template>
               </svg>
-              <span class="text-[9px] font-mono text-slate-500 tracking-widest mt-0.5" x-text="passenger.inspection_id.substring(0, 18).toUpperCase()"></span>
             </div>
           </article>
         </div>
       </template>
 
-      <div class="flex items-center justify-between text-[10px] text-slate-400 font-mono z-0 pointer-events-none pt-2 border-t border-slate-800/70">
-        <span>SHIFT DATE: 2026-11-16 // CHECK EXPIRATION DATES</span>
-        <span x-show="isDevDrawerOpen" class="text-amber-400" x-text="passenger ? ('REST: ' + passenger.rest_telemetry.latency_ms + 'ms | ' + passenger.rest_telemetry.bytes_received + 'B') : ''"></span>
-      </div>
-    </section>
-
-    <section class="lg:col-span-6 flex flex-col bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
-      <div class="bg-slate-800 px-4 py-2 border-b border-slate-700 flex items-center justify-between text-xs">
-        <div class="flex items-center space-x-2">
-          <span class="w-3 h-3 rounded-full bg-rose-500 inline-block"></span>
-          <span class="w-3 h-3 rounded-full bg-amber-500 inline-block"></span>
-          <span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span>
-          <span class="font-bold text-slate-200 ml-2 font-mono">OS/390 WORKSTATION // 1999</span>
-        </div>
-
-        <div class="flex space-x-1">
-          <button @click="activeWindow = 'mainframe'" :class="activeWindow === 'mainframe' ? 'bg-slate-950 text-emerald-400 border border-slate-700' : 'text-slate-400 hover:text-slate-200'" class="px-2.5 py-1 rounded text-xs font-mono font-bold transition">
-            MAINFRAME.EXE [SOAP]
-          </button>
-          <button @click="activeWindow = 'interpol'" :class="activeWindow === 'interpol' ? 'bg-slate-950 text-blue-400 border border-slate-700' : 'text-slate-400 hover:text-slate-200'" class="px-2.5 py-1 rounded text-xs font-mono font-bold transition">
-            WATCHLIST.EXE [REST]
-          </button>
-          <button @click="activeWindow = 'rules'" :class="activeWindow === 'rules' ? 'bg-slate-950 text-amber-400 border border-slate-700' : 'text-slate-400 hover:text-slate-200'" class="px-2.5 py-1 rounded text-xs font-mono font-bold transition">
-            RULES.TXT
-          </button>
-        </div>
-      </div>
-
-      <div class="flex-1 p-4 flex flex-col">
-
-        <div x-show="activeWindow === 'mainframe'" class="crt-monitor rounded-xl p-4 flex-1 flex flex-col justify-between font-crt text-lg min-h-[430px]">
-          <div>
-            <div class="text-emerald-500 text-sm tracking-widest flex justify-between border-b border-emerald-950 pb-1 mb-3">
-              <span>IBM CICS // WSDL SOAP 1.1 TERMINAL (9600 BPS)</span>
-              <span>OORSPRONG GATEWAY</span>
-            </div>
-
-            <div class="flex space-x-3 mb-3 bg-black/50 p-2.5 rounded-lg border border-emerald-900/70">
-              <div class="shrink-0 text-center">
-                <img :src="passenger ? passenger.avatar_url : 'https://api.dicebear.com/9.x/notionists/svg?seed=CRT'" alt="CRT Fax Portrait" class="w-16 h-16 rounded crt-phosphor-portrait object-cover">
-                <span class="text-[11px] text-emerald-500 block mt-0.5">FAX-SCAN</span>
-              </div>
-              <div class="flex-1 text-sm space-y-0.5 text-emerald-300">
-                <div class="text-emerald-500 font-bold">CANONICAL WSDL RECORD BUFFER:</div>
-                <template x-if="mainframeData && mainframeData.canonical_record">
-                  <div>
-                    <div x-show="teletypeVisibleFields >= 2">NATION: <span class="text-white font-bold" x-text="mainframeData.canonical_record.name + ' (' + mainframeData.canonical_record.iso_code + ')'"></span></div>
-                    <div x-show="teletypeVisibleFields >= 3">CAPITAL: <span class="text-white font-bold" x-text="mainframeData.canonical_record.capital"></span></div>
-                    <div x-show="teletypeVisibleFields >= 4">CURRENCY: <span class="text-white font-bold" x-text="mainframeData.canonical_record.currency_code"></span> | DDI: <span class="text-white font-bold" x-text="'+' + mainframeData.canonical_record.phone_code"></span></div>
-                  </div>
-                </template>
-                <template x-if="!mainframeData">
-                  <div class="text-emerald-600">NO WSDL RECORD PULLED. TYPE ISO CODE BELOW TO QUERY MAINFRAME.</div>
-                </template>
-              </div>
-            </div>
-
-            <div class="overflow-y-auto max-h-40 space-y-1 mb-2 text-base text-emerald-400 leading-snug crt-text-glow">
-              <template x-for="log in terminalLogs" :key="log.id">
-                <div :class="log.isError ? 'text-rose-400' : 'text-emerald-300'" x-text="log.text"></div>
-              </template>
-            </div>
-          </div>
-
-          <div class="border-t border-emerald-950 pt-3 relative z-10">
-            <div class="text-xs text-emerald-500 mb-1 font-mono">ENTER ISO CODE TO DISPATCH SOAP ENVELOPE (EX: "JP" OR "QUERY JP"):</div>
-            <div class="flex items-center space-x-2">
-              <span class="text-emerald-400 font-bold text-xl">&gt;</span>
-              <input type="text" x-model="manualCommand" @keydown.enter="executeManualSoapQuery()" placeholder="QUERY ISO..." class="flex-1 bg-black/85 text-emerald-300 border border-emerald-700 rounded px-3 py-1.5 font-crt text-xl uppercase tracking-wider focus:outline-none focus:border-emerald-400">
-              <button @click="executeManualSoapQuery()" :disabled="isQuerying" class="px-4 py-1.5 bg-emerald-900 hover:bg-emerald-800 border border-emerald-500 text-emerald-100 text-sm font-bold rounded transition font-mono">
-                <span x-text="isQuerying ? 'SOAP POST...' : 'TRANSMIT'"></span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div x-show="activeWindow === 'interpol'" class="bg-slate-950 rounded-xl p-5 flex-1 flex flex-col justify-between border border-blue-900/60 min-h-[430px]">
-          <div>
-            <div class="flex items-center justify-between border-b border-blue-900/60 pb-2 mb-4">
-              <div class="flex items-center space-x-2">
-                <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
-                <span class="text-xs font-bold text-blue-400 font-mono">INTERPOL BIOMETRIC WATCHLIST // REST CLIENT v2.4</span>
-              </div>
-              <span class="text-[10px] text-slate-500 font-mono">CRIMINAL WARRANT REGISTRY</span>
-            </div>
-
-            <div class="flex items-center space-x-3 mb-5">
-              <button @click="queryInterpol()" :disabled="isInterpolQuerying" class="px-4 py-2 bg-blue-700 hover:bg-blue-600 font-bold rounded-lg text-white text-xs font-mono transition shadow-md shadow-blue-950">
-                <span x-text="isInterpolQuerying ? 'QUERYING BIOMETRICS...' : 'SCAN PASSPORT IN WATCHLIST'"></span>
-              </button>
-              <span class="text-xs text-slate-400 font-mono">Doc: <code class="text-slate-200" x-text="passenger ? passenger.passport_number : '-'"></code></span>
-            </div>
-
-            <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 min-h-[160px]">
-              <template x-if="!interpolData && !isInterpolQuerying">
-                <div class="text-slate-500 text-xs font-mono italic text-center py-10">Click scan to verify traveler against international warrant registries...</div>
-              </template>
-
-              <template x-if="isInterpolQuerying">
-                <div class="text-blue-400 text-xs font-mono animate-pulse text-center py-10">&gt; SEARCHING REST ENDPOINT /v1/watchlist/...</div>
-              </template>
-
-              <template x-if="interpolData">
-                <div class="space-y-3 font-mono text-xs">
-                  <div class="flex items-center justify-between border-b border-slate-800 pb-2">
-                    <span class="text-slate-400">PASSPORT NO: <span class="text-slate-100 font-bold" x-text="interpolData.passport_number"></span></span>
-                    <span :class="interpolData.is_wanted ? 'bg-rose-950 text-rose-400 border border-rose-700 font-black' : 'bg-emerald-950 text-emerald-400 border border-emerald-700 font-semibold'" class="px-2.5 py-0.5 rounded text-[11px]">
-                      <span x-text="interpolData.is_wanted ? '&#9888; RED NOTICE ACTIVE' : '&#10003; RECORD CLEARED'"></span>
-                    </span>
-                  </div>
-
-                  <template x-if="interpolData.is_wanted">
-                    <div class="p-3 bg-rose-950/40 rounded border border-rose-800/80 text-rose-300 font-semibold" x-text="interpolData.wanted_reason"></div>
-                  </template>
-
-                  <template x-if="!interpolData.is_wanted">
-                    <div class="text-slate-300 text-xs">No active notices or criminal warrants found in international database.</div>
-                  </template>
-                </div>
-              </template>
-            </div>
-          </div>
-
-          <div class="text-[10px] text-slate-500 font-mono border-t border-slate-900 pt-2 flex justify-between">
-            <span>DATABASE: INTERPOL CENTRAL</span>
-            <span x-show="isDevDrawerOpen" class="text-amber-400" x-text="interpolData ? (interpolData.rest_telemetry.latency_ms + 'ms | ' + interpolData.rest_telemetry.bytes_received + 'B') : 'IDLE'"></span>
-          </div>
-        </div>
-
-        <div x-show="activeWindow === 'rules'" class="bg-amber-950/20 rounded-xl p-5 flex-1 flex flex-col justify-between border border-amber-900/60 min-h-[430px] font-mono text-xs text-amber-200">
-          <div>
-            <div class="text-amber-400 font-bold border-b border-amber-900/60 pb-2 mb-3 tracking-wider uppercase">
-              BORDER OPERATIONAL REGULATION // DIRECTIVE 44-B
-            </div>
-            <ul class="space-y-2.5 list-disc list-inside text-slate-300 leading-relaxed">
-              <li><strong class="text-amber-300">Documentos Físicos na Mesa:</strong> Arraste o Passaporte e o Manifesto de Câmbio pela mesa para inspecionar todos os campos.</li>
-              <li><strong class="text-amber-300">Interrogatório Ativo:</strong> Use os botões abaixo do balão de fala para questionar Origem, Moeda e Motivo da viagem.</li>
-              <li><strong class="text-amber-300">Conferência WSDL SOAP:</strong> Digite o código ISO no <code class="text-emerald-400">MAINFRAME.EXE</code>. Verifique Capital, Moeda e DDI.</li>
-              <li><strong class="text-amber-300">Bônus Pericial (+150 PTS):</strong> Ao negar entrada (<kbd class="px-1 bg-slate-800 rounded">D</kbd>), aponte a causa exata da infração no ticket de detenção.</li>
-            </ul>
-          </div>
-          <div class="text-[10px] text-slate-500 pt-2 border-t border-amber-900/40">
-            MINISTRY OF BORDER INTEGRITY &bull; CLASSIFIED
-          </div>
-        </div>
-
-      </div>
     </section>
 
   </main>
 
-  <section x-show="isDevDrawerOpen" class="max-w-7xl mx-auto w-full px-4 lg:px-6 pb-8">
-    <div class="bg-slate-900 border-2 border-amber-500/40 rounded-2xl p-6 shadow-2xl">
+  <section x-show="isDevDrawerOpen" class="max-w-[1440px] mx-auto w-full px-3 pb-8">
+    <div class="bg-slate-900 border-2 border-amber-500/40 rounded-2xl p-5 shadow-2xl">
       <div class="flex flex-wrap items-center justify-between border-b border-slate-800 pb-3 mb-4 gap-3">
         <div>
           <div class="flex items-center space-x-2">
