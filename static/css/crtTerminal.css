@@ -1,0 +1,37 @@
+.font-crt {
+  font-family: 'VT323', monospace;
+}
+
+.crt-monitor {
+  background: radial-gradient(circle, #0b2210 0%, #030904 100%);
+  color: #33ff66;
+  box-shadow: inset 0 0 55px rgba(0, 255, 102, 0.22), 0 10px 30px rgba(0, 0, 0, 0.92);
+  position: relative;
+}
+
+.crt-monitor::before {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background:
+    linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.42) 50%),
+    linear-gradient(90deg, rgba(255, 0, 0, 0.04), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.04));
+  z-index: 2;
+  background-size: 100% 3px, 4px 100%;
+  pointer-events: none;
+}
+
+.crt-phosphor-portrait {
+  filter: grayscale(100%) sepia(100%) hue-rotate(82deg) saturate(380%) contrast(165%) brightness(0.88);
+  border: 1px solid #22c55e;
+  background-color: #041307;
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.35);
+}
+
+.crt-text-glow {
+  text-shadow: 0 0 6px rgba(51, 255, 102, 0.45);
+}
