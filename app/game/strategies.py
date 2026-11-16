@@ -8,7 +8,8 @@ class FraudStrategy(abc.ABC):
 
 class LegitimateStrategy(FraudStrategy):
     def apply(self, canonical: CountryRecord, context: dict) -> tuple[dict, bool, str, str]:
-        speech = f"Hello officer. I am arriving from {canonical.capital} on a business trip with {canonical.currency_code} currency."
+        purpose = context.get("profile", {}).get("purpose", "Business Conference")
+        speech = f"Hello officer. I am arriving from {canonical.capital} for {purpose.lower()}."
         modifications = {
             "declared_iso_code": canonical.iso_code,
             "declared_capital": canonical.capital,
@@ -17,7 +18,13 @@ class LegitimateStrategy(FraudStrategy):
             "is_expired": False,
             "expiration_date": "2031-08-14",
             "is_wanted_interpol": False,
-            "dialogue_speech": speech
+            "dialogue_speech": speech,
+            "violation_category": "NONE",
+            "interrogation_responses": {
+                "origin": f"My home is in {canonical.capital}, {canonical.name}. My embassy phone code is +{canonical.phone_code}.",
+                "currency": f"I declared {canonical.currency_code} on my customs manifest, which is our official legal tender.",
+                "purpose": f"I am visiting for {purpose}. All my invitations and return tickets are confirmed."
+            }
         }
         return modifications, False, "LEGITIMATE", "Passport data and spoken declaration match official government records."
 
@@ -36,8 +43,9 @@ class CapitalMismatchStrategy(FraudStrategy):
     }
 
     def apply(self, canonical: CountryRecord, context: dict) -> tuple[dict, bool, str, str]:
-        fake_capital = self.ALTERNATIVE_CAPITALS.get(canonical.iso_code, f"Fake-{canonical.capital}")
-        speech = f"Good day. I am traveling from my hometown {fake_capital}. Here are my travel credentials."
+        fake_capital = self.ALTERNATIVE_CAPITALS.get(canonical.iso_code, f"New {canonical.capital}")
+        purpose = context.get("profile", {}).get("purpose", "Tourism")
+        speech = f"Good day. I am traveling from our national capital, {fake_capital}. Here are my papers."
         modifications = {
             "declared_iso_code": canonical.iso_code,
             "declared_capital": fake_capital,
@@ -46,9 +54,15 @@ class CapitalMismatchStrategy(FraudStrategy):
             "is_expired": False,
             "expiration_date": "2029-11-20",
             "is_wanted_interpol": False,
-            "dialogue_speech": speech
+            "dialogue_speech": speech,
+            "violation_category": "WSDL_MISMATCH",
+            "interrogation_responses": {
+                "origin": f"Yes, my passport and manifest both list {fake_capital} as the capital of {canonical.name}.",
+                "currency": f"I am carrying {canonical.currency_code} bank notes as declared on the form.",
+                "purpose": f"I am entering the country for {purpose}."
+            }
         }
-        reason = f"Capital forgery: document states capital as '{fake_capital}', but official mainframe returned '{canonical.capital}'."
+        reason = f"Capital forgery: document states capital as '{fake_capital}', but official WSDL mainframe returned '{canonical.capital}'."
         return modifications, True, "CAPITAL_MISMATCH", reason
 
 class CurrencyMismatchStrategy(FraudStrategy):
@@ -57,14 +71,15 @@ class CurrencyMismatchStrategy(FraudStrategy):
         "JP": "CNY",
         "DE": "GBP",
         "FR": "CHF",
-        "CA": "USD",
-        "GB": "EUR",
+        "CA": "EUR",
+        "GB": "USD",
         "AU": "NZD"
     }
 
     def apply(self, canonical: CountryRecord, context: dict) -> tuple[dict, bool, str, str]:
-        fake_currency = self.ALTERNATIVE_CURRENCIES.get(canonical.iso_code, "XXX")
-        speech = f"Officer, I am carrying my savings in {fake_currency}. Everything should be in order."
+        fake_currency = self.ALTERNATIVE_CURRENCIES.get(canonical.iso_code, "XDR")
+        purpose = context.get("profile", {}).get("purpose", "Trade Audit")
+        speech = f"Officer, I am arriving from {canonical.capital} with my funds declared on the manifest."
         modifications = {
             "declared_iso_code": canonical.iso_code,
             "declared_capital": canonical.capital,
@@ -73,9 +88,15 @@ class CurrencyMismatchStrategy(FraudStrategy):
             "is_expired": False,
             "expiration_date": "2030-05-18",
             "is_wanted_interpol": False,
-            "dialogue_speech": speech
+            "dialogue_speech": speech,
+            "violation_category": "WSDL_MISMATCH",
+            "interrogation_responses": {
+                "origin": f"I departed from {canonical.capital} Airport this morning.",
+                "currency": f"My manifest lists {fake_currency} as the national currency of {canonical.name}. Is that not right?",
+                "purpose": f"My company sent me for {purpose}."
+            }
         }
-        reason = f"Currency fraud: traveler carries contraband currency '{fake_currency}', but official mainframe specifies '{canonical.currency_code}'."
+        reason = f"Currency fraud: manifest declares '{fake_currency}', but official WSDL mainframe specifies '{canonical.currency_code}'."
         return modifications, True, "CURRENCY_MISMATCH", reason
 
 class DialingCodeMismatchStrategy(FraudStrategy):
@@ -85,12 +106,13 @@ class DialingCodeMismatchStrategy(FraudStrategy):
         "DE": "43",
         "FR": "32",
         "CA": "44",
-        "GB": "1"
+        "GB": "353"
     }
 
     def apply(self, canonical: CountryRecord, context: dict) -> tuple[dict, bool, str, str]:
         fake_code = self.ALTERNATIVE_CODES.get(canonical.iso_code, "999")
-        speech = f"Greetings. You can contact my embassy at phone prefix +{fake_code} if needed."
+        purpose = context.get("profile", {}).get("purpose", "Diplomacy")
+        speech = f"Greetings. My documents from {canonical.name} are on the desk for your review."
         modifications = {
             "declared_iso_code": canonical.iso_code,
             "declared_capital": canonical.capital,
@@ -99,15 +121,21 @@ class DialingCodeMismatchStrategy(FraudStrategy):
             "is_expired": False,
             "expiration_date": "2028-12-05",
             "is_wanted_interpol": False,
-            "dialogue_speech": speech
+            "dialogue_speech": speech,
+            "violation_category": "WSDL_MISMATCH",
+            "interrogation_responses": {
+                "origin": f"I live in {canonical.capital}. My telecom prefix on the manifest is +{fake_code}.",
+                "currency": f"I only carry {canonical.currency_code} for my stay.",
+                "purpose": f"I am scheduled for {purpose} this week."
+            }
         }
-        reason = f"Telecom dialing code forgery: document states +{fake_code}, whereas international records mandate +{canonical.phone_code}."
+        reason = f"Telecom dialing code forgery: manifest states +{fake_code}, whereas international WSDL records mandate +{canonical.phone_code}."
         return modifications, True, "DIALING_CODE_MISMATCH", reason
 
 class InvalidIsoFaultStrategy(FraudStrategy):
     def apply(self, canonical: CountryRecord, context: dict) -> tuple[dict, bool, str, str]:
         fake_iso = "ZZ"
-        speech = "I am an emissary from a special administrative territory. My papers are diplomatic."
+        speech = "I am an envoy from an autonomous enclave. Please process my clearance."
         modifications = {
             "declared_iso_code": fake_iso,
             "declared_capital": canonical.capital,
@@ -116,14 +144,20 @@ class InvalidIsoFaultStrategy(FraudStrategy):
             "is_expired": False,
             "expiration_date": "2032-01-01",
             "is_wanted_interpol": False,
-            "dialogue_speech": speech
+            "dialogue_speech": speech,
+            "violation_category": "WSDL_MISMATCH",
+            "interrogation_responses": {
+                "origin": f"My passport bears sovereignty code '{fake_iso}'. Try querying it on your mainframe.",
+                "currency": f"We use {canonical.currency_code} in our jurisdiction.",
+                "purpose": "Diplomatic courier transit."
+            }
         }
-        reason = f"Fabricated sovereign nation code '{fake_iso}': nonexistent country code triggering mainframe schema fault."
+        reason = f"Fabricated sovereign nation code '{fake_iso}': nonexistent ISO code triggering mainframe WSDL fault."
         return modifications, True, "INVALID_ISO_FAULT", reason
 
 class ExpiredPassportStrategy(FraudStrategy):
     def apply(self, canonical: CountryRecord, context: dict) -> tuple[dict, bool, str, str]:
-        speech = "Officer, I have been traveling across borders for months. Please stamp my passport quickly."
+        speech = f"Officer, I have been in transit from {canonical.capital} for a long time. Please stamp me through."
         modifications = {
             "declared_iso_code": canonical.iso_code,
             "declared_capital": canonical.capital,
@@ -132,7 +166,13 @@ class ExpiredPassportStrategy(FraudStrategy):
             "is_expired": True,
             "expiration_date": "2022-03-15",
             "is_wanted_interpol": False,
-            "dialogue_speech": speech
+            "dialogue_speech": speech,
+            "violation_category": "EXPIRED_PASSPORT",
+            "interrogation_responses": {
+                "origin": f"I am a citizen of {canonical.name}, born and raised in {canonical.capital}.",
+                "currency": f"Everything on my currency manifest ({canonical.currency_code}) is accurate.",
+                "purpose": "I forgot to renew my passport booklet before boarding, please overlook the expiration date!"
+            }
         }
         reason = "Expired travel document: passport expired on 2022-03-15. Border regulations require valid documentation."
         return modifications, True, "EXPIRED_PASSPORT", reason
@@ -152,7 +192,7 @@ class SpeechContradictionStrategy(FraudStrategy):
             canonical.iso_code,
             ("Atlantis", "XYZ")
         )
-        speech = f"Good day. I am a native resident of {mismatched_city} and carry {mismatched_curr}. Please inspect my booklet."
+        speech = f"Good day. I am a citizen of {mismatched_city} and only use {mismatched_curr} currency."
         modifications = {
             "declared_iso_code": canonical.iso_code,
             "declared_capital": canonical.capital,
@@ -161,14 +201,20 @@ class SpeechContradictionStrategy(FraudStrategy):
             "is_expired": False,
             "expiration_date": "2029-07-22",
             "is_wanted_interpol": False,
-            "dialogue_speech": speech
+            "dialogue_speech": speech,
+            "violation_category": "VERBAL_CONTRADICTION",
+            "interrogation_responses": {
+                "origin": f"Wait... my passport says {canonical.name}, but I told you I hail from {mismatched_city}!",
+                "currency": f"I insist my domestic currency is {mismatched_curr}, regardless of what the document says.",
+                "purpose": "Just let me through, do not mind what I said earlier!"
+            }
         }
-        reason = f"Verbal testimony contradiction: traveler claims residency in '{mismatched_city}', directly contradicting passport issuing authority '{canonical.name}'."
+        reason = f"Verbal testimony contradiction: traveler claims citizenship in '{mismatched_city}' with '{mismatched_curr}', contradicting passport '{canonical.name}'."
         return modifications, True, "VERBAL_CONTRADICTION", reason
 
 class InterpolWatchlistStrategy(FraudStrategy):
     def apply(self, canonical: CountryRecord, context: dict) -> tuple[dict, bool, str, str]:
-        speech = "Hello officer. I am here for an urgent confidential transfer. No need to detain me."
+        speech = f"Hello officer. My {canonical.name} passport is completely valid. No need to run a background check."
         modifications = {
             "declared_iso_code": canonical.iso_code,
             "declared_capital": canonical.capital,
@@ -177,7 +223,13 @@ class InterpolWatchlistStrategy(FraudStrategy):
             "is_expired": False,
             "expiration_date": "2028-10-10",
             "is_wanted_interpol": True,
-            "dialogue_speech": speech
+            "dialogue_speech": speech,
+            "violation_category": "INTERPOL_WANTED",
+            "interrogation_responses": {
+                "origin": f"I am from {canonical.capital}, {canonical.name}. All my WSDL fields are genuine.",
+                "currency": f"I have {canonical.currency_code} declared properly.",
+                "purpose": "Why are you opening WATCHLIST.EXE? My personal record is private!"
+            }
         }
         reason = "Interpol Red Notice Alert: biometric ID matches active international warrant for financial espionage."
         return modifications, True, "INTERPOL_WANTED", reason

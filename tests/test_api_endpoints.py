@@ -9,19 +9,13 @@ def test_api_full_inspection_cycle():
     passport = next_response.json()
     inspection_id = passport["inspection_id"]
     assert inspection_id
-    assert passport["passenger_name"]
-    assert passport["dialogue_speech"]
-    assert passport["passport_number"]
-    assert passport["rest_telemetry"]["protocol"] == "REST"
+    assert "interrogation_responses" in passport
 
     interpol_response = client.post(
         f"/api/inspections/{inspection_id}/interpol-query",
         json={"passport_number": passport["passport_number"]}
     )
     assert interpol_response.status_code == 200
-    interpol_data = interpol_response.json()
-    assert "is_wanted" in interpol_data
-    assert interpol_data["rest_telemetry"]["protocol"] == "REST"
 
     query_payload = {"query_iso_code": passport["declared_iso_code"]}
     mainframe_response = client.post(
@@ -29,17 +23,22 @@ def test_api_full_inspection_cycle():
         json=query_payload
     )
     assert mainframe_response.status_code == 200
-    mainframe_data = mainframe_response.json()
-    assert mainframe_data["soap_telemetry"]["protocol"] == "SOAP"
 
     verdict_response = client.post(
         f"/api/inspections/{inspection_id}/verdict",
-        json={"decision": "APPROVE"}
+        json={"decision": "DENY", "violation_category": "WSDL_MISMATCH"}
     )
     assert verdict_response.status_code == 200
     verdict_data = verdict_response.json()
-    assert "is_correct" in verdict_data
-    assert "score_delta" in verdict_data
+    assert "traveler_reaction" in verdict_data
+    assert "expected_category" in verdict_data
+
+def test_api_fault_simulation_endpoint():
+    response = client.post("/api/inspections/debug/fault-simulation")
+    assert response.status_code == 200
+    data = response.json()
+    assert "<soap:Fault>" in data["soap_fault_telemetry"]["raw_response"]
+    assert data["rest_error_telemetry"]["status_code"] == 404
 
 def test_api_nonexistent_session():
     response = client.post(

@@ -35,6 +35,7 @@ class InspectionPassport(BaseModel):
     is_expired: bool
     travel_purpose: str
     dialogue_speech: str
+    interrogation_responses: dict[str, str] = Field(default_factory=dict)
     declared_iso_code: str
     declared_country_name: str
     declared_capital: str
@@ -57,6 +58,10 @@ class InterpolQueryResult(BaseModel):
     wanted_reason: Optional[str] = None
     rest_telemetry: ProtocolTelemetry
 
+class FaultSimulationResult(BaseModel):
+    soap_fault_telemetry: ProtocolTelemetry
+    rest_error_telemetry: ProtocolTelemetry
+
 class InspectionCase(BaseModel):
     inspection_id: str
     canonical_record: CountryRecord
@@ -64,16 +69,21 @@ class InspectionCase(BaseModel):
     is_fraud: bool
     fraud_reason: str
     fraud_type: str
+    violation_category: str
 
 class VerdictSubmission(BaseModel):
     decision: str
+    violation_category: Optional[str] = None
 
 class VerdictResult(BaseModel):
     inspection_id: str
     decision: str
     is_correct: bool
+    is_exact_category_match: bool = False
     is_fraud: bool
     fraud_type: str
+    expected_category: str
     fraud_reason: str
     score_delta: int
+    traveler_reaction: str
     technical_explanation: str

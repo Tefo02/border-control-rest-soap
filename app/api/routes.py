@@ -2,6 +2,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from app.domain.models import (
+    FaultSimulationResult,
     InspectionPassport,
     InterpolQueryResult,
     MainframeQueryResult,
@@ -27,6 +28,12 @@ async def generate_next_inspection(
     service: InspectionService = Depends(get_inspection_service)
 ) -> InspectionPassport:
     return await service.create_next_inspection()
+
+@router.post("/debug/fault-simulation", response_model=FaultSimulationResult)
+def trigger_fault_simulation(
+    service: InspectionService = Depends(get_inspection_service)
+) -> FaultSimulationResult:
+    return service.simulate_protocol_faults()
 
 @router.post("/{inspection_id}/mainframe-query", response_model=MainframeQueryResult)
 def query_mainframe_records(
@@ -75,7 +82,11 @@ def submit_inspection_verdict(
     service: InspectionService = Depends(get_inspection_service)
 ) -> VerdictResult:
     try:
-        return service.evaluate_verdict(inspection_id, submission.decision)
+        return service.evaluate_verdict(
+            inspection_id,
+            submission.decision,
+            submission.violation_category
+        )
     except KeyError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
     except ValueError as exc:
