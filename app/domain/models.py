@@ -23,8 +23,27 @@ class CountryRecord(BaseModel):
     flag_url: str
     languages: list[str] = Field(default_factory=list)
 
+class WantedCriminalProfile(BaseModel):
+    criminal_id: str
+    passenger_name: str
+    avatar_url: str
+    crime_description: str
+    alias_hint: str
+
+class ShiftSessionState(BaseModel):
+    shift_id: str
+    day_number: int
+    total_passengers: int
+    current_passenger_index: int
+    is_shift_completed: bool
+    wanted_list: list[WantedCriminalProfile]
+    rest_telemetry: ProtocolTelemetry
+
 class InspectionPassport(BaseModel):
     inspection_id: str
+    shift_id: Optional[str] = None
+    passenger_index: int = 1
+    total_passengers: int = 8
     passenger_name: str
     avatar_url: str
     passport_number: str
@@ -56,6 +75,7 @@ class InterpolQueryResult(BaseModel):
     passenger_name: str
     is_wanted: bool
     wanted_reason: Optional[str] = None
+    wanted_list: list[WantedCriminalProfile] = Field(default_factory=list)
     rest_telemetry: ProtocolTelemetry
 
 class FaultSimulationResult(BaseModel):
@@ -87,3 +107,4 @@ class VerdictResult(BaseModel):
     score_delta: int
     traveler_reaction: str
     technical_explanation: str
+    is_shift_completed: bool = False

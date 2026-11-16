@@ -1,3 +1,4 @@
+import json
 import random
 import uuid
 from typing import Optional
@@ -10,7 +11,9 @@ from app.domain.models import (
     InterpolQueryResult,
     MainframeQueryResult,
     ProtocolTelemetry,
+    ShiftSessionState,
     VerdictResult,
+    WantedCriminalProfile,
 )
 from app.game.repository import InspectionRepository
 from app.game.strategies import (
@@ -32,16 +35,20 @@ CURATED_ISO_CODES = [
 ]
 
 PASSENGER_PROFILES = [
-    {"name": "Alex Mercer", "age": 34, "birth": "1992-06-14", "purpose": "Software Engineering Conference"},
-    {"name": "Elena Rostova", "age": 29, "birth": "1997-03-22", "purpose": "Tourism & Architecture Tour"},
-    {"name": "Kenji Sato", "age": 41, "birth": "1985-11-09", "purpose": "Automotive Supply Chain Audit"},
-    {"name": "Carlos Mendoza", "age": 38, "birth": "1988-08-30", "purpose": "Import/Export Cargo Inspection"},
-    {"name": "Fatima Al-Mansoor", "age": 31, "birth": "1995-01-17", "purpose": "Medical Fellowship Program"},
-    {"name": "Liam O'Connor", "age": 45, "birth": "1981-05-04", "purpose": "Agricultural Equipment Sales"},
-    {"name": "Astrid Lindholm", "age": 27, "birth": "1999-09-12", "purpose": "Renewable Energy Research"},
-    {"name": "Mateo Silva", "age": 36, "birth": "1990-12-03", "purpose": "International Film Festival"},
-    {"name": "Chloe Dubois", "age": 33, "birth": "1993-07-25", "purpose": "Gastronomy & Wine Tasting Tour"},
-    {"name": "Viktor Vance", "age": 52, "birth": "1974-02-19", "purpose": "Financial Investment Consulting"}
+    {"name": "Alex Mercer", "age": 34, "birth": "1992-06-14", "purpose": "Software Engineering Conference", "crime": "International Wire Fraud"},
+    {"name": "Elena Rostova", "age": 29, "birth": "1997-03-22", "purpose": "Tourism & Architecture Tour", "crime": "Diplomatic Document Forgery"},
+    {"name": "Kenji Sato", "age": 41, "birth": "1985-11-09", "purpose": "Automotive Supply Chain Audit", "crime": "Industrial Espionage"},
+    {"name": "Carlos Mendoza", "age": 38, "birth": "1988-08-30", "purpose": "Import/Export Cargo Inspection", "crime": "Contraband Currency Smuggling"},
+    {"name": "Fatima Al-Mansoor", "age": 31, "birth": "1995-01-17", "purpose": "Medical Fellowship Program", "crime": "Unauthorized Bio-Data Transfer"},
+    {"name": "Liam O'Connor", "age": 45, "birth": "1981-05-04", "purpose": "Agricultural Equipment Sales", "crime": "Customs Tariff Evasion"},
+    {"name": "Astrid Lindholm", "age": 27, "birth": "1999-09-12", "purpose": "Renewable Energy Research", "crime": "Satellite Mainframe Intrusion"},
+    {"name": "Mateo Silva", "age": 36, "birth": "1990-12-03", "purpose": "International Film Festival", "crime": "Art & Antiquities Trafficking"},
+    {"name": "Chloe Dubois", "age": 33, "birth": "1993-07-25", "purpose": "Gastronomy & Wine Tasting Tour", "crime": "Identity Theft Syndicate"},
+    {"name": "Viktor Vance", "age": 52, "birth": "1974-02-19", "purpose": "Financial Investment Consulting", "crime": "Offshore Money Laundering"},
+    {"name": "Nadia Petrova", "age": 30, "birth": "1996-04-11", "purpose": "Classical Music Conservatory", "crime": "Encrypted Courier Interception"},
+    {"name": "Tariq Haddad", "age": 44, "birth": "1982-10-02", "purpose": "Maritime Logistics Summit", "crime": "Falsified Naval Manifests"},
+    {"name": "Hana Takahashi", "age": 26, "birth": "2000-01-29", "purpose": "Robotics Symposium", "crime": "Microchip Export Violation"},
+    {"name": "Marcus Sterling", "age": 49, "birth": "1977-07-08", "purpose": "Mineral Extraction Advisory", "crime": "Sovereign Bond Counterfeiting"}
 ]
 
 class InspectionService:
@@ -54,32 +61,109 @@ class InspectionService:
         self._repository = repository
         self._rest_adapter = rest_adapter
         self._soap_adapter = soap_adapter
-        self._fraud_strategies: list[FraudStrategy] = [
+        self._non_wanted_strategies: list[FraudStrategy] = [
             CapitalMismatchStrategy(),
             CurrencyMismatchStrategy(),
             DialingCodeMismatchStrategy(),
             InvalidIsoFaultStrategy(),
             ExpiredPassportStrategy(),
-            SpeechContradictionStrategy(),
-            InterpolWatchlistStrategy()
+            SpeechContradictionStrategy()
         ]
+        self._interpol_strategy = InterpolWatchlistStrategy()
+        self._active_shift: Optional[ShiftSessionState] = None
+        self._wanted_slots: dict[int, dict] = {}
+        self._used_non_wanted_names: set[str] = set()
+
+    def start_new_shift(self, day_number: int = 1) -> ShiftSessionState:
+        shift_id = str(uuid.uuid4())
+        total_passengers = random.randint(6, 10)
+        wanted_profiles = random.sample(PASSENGER_PROFILES, k=3)
+        wanted_models: list[WantedCriminalProfile] = []
+
+        for idx, prof in enumerate(wanted_profiles):
+            seed = prof["name"].replace(" ", "")
+            wanted_models.append(
+                WantedCriminalProfile(
+                    criminal_id=f"WNT-{100 + idx}",
+                    passenger_name=prof["name"],
+                    avatar_url=f"https://api.dicebear.com/9.x/notionists/svg?seed={seed}",
+                    crime_description=prof["crime"],
+                    alias_hint=f"DOB: {prof['birth']} ({prof['age']} YRS)"
+                )
+            )
+
+        wanted_count = random.choice([1, 2])
+        chosen_slots = random.sample(range(1, total_passengers + 1), k=wanted_count)
+        chosen_criminals = random.sample(wanted_profiles, k=wanted_count)
+        self._wanted_slots = {
+            slot: chosen_criminals[i] for i, slot in enumerate(chosen_slots)
+        }
+        self._used_non_wanted_names = {p["name"] for p in wanted_profiles}
+
+        raw_json = json.dumps([w.model_dump() for w in wanted_models], indent=2)
+        telemetry = ProtocolTelemetry(
+            protocol="REST",
+            operation="GET /v1/watchlist/daily-bulletin",
+            endpoint_url="https://interpol.api.local/v1/watchlist/daily-bulletin",
+            latency_ms=31.5,
+            bytes_sent=128,
+            bytes_received=len(raw_json.encode("utf-8")),
+            raw_request="GET /v1/watchlist/daily-bulletin HTTP/1.1\r\nHost: interpol.api.local\r\nAccept: application/json\r\n",
+            raw_response=raw_json,
+            status_code=200
+        )
+
+        self._active_shift = ShiftSessionState(
+            shift_id=shift_id,
+            day_number=day_number,
+            total_passengers=total_passengers,
+            current_passenger_index=0,
+            is_shift_completed=False,
+            wanted_list=wanted_models,
+            rest_telemetry=telemetry
+        )
+        return self._active_shift
+
+    def get_or_create_shift(self) -> ShiftSessionState:
+        if not self._active_shift or self._active_shift.is_shift_completed:
+            next_day = (self._active_shift.day_number + 1) if self._active_shift else 1
+            return self.start_new_shift(day_number=next_day)
+        return self._active_shift
 
     async def create_next_inspection(self) -> InspectionPassport:
+        shift = self.get_or_create_shift()
+        shift.current_passenger_index += 1
+        current_idx = shift.current_passenger_index
+
         inspection_id = str(uuid.uuid4())
         chosen_iso = random.choice(CURATED_ISO_CODES)
-        profile = random.choice(PASSENGER_PROFILES)
+
+        if current_idx in self._wanted_slots:
+            profile = self._wanted_slots[current_idx]
+            strategy: FraudStrategy = self._interpol_strategy
+        else:
+            available_Pool = [
+                p for p in PASSENGER_PROFILES if p["name"] not in self._used_non_wanted_names
+            ]
+            if not available_Pool:
+                available_Pool = PASSENGER_PROFILES
+            profile = random.choice(available_Pool)
+            strategy = self._select_non_wanted_strategy()
+
         avatar_seed = profile["name"].replace(" ", "")
         avatar_url = f"https://api.dicebear.com/9.x/notionists/svg?seed={avatar_seed}"
         passport_number = f"P{random.randint(10000000, 99999999)}"
 
         canonical_record, rest_telemetry = await self._rest_adapter.fetch_country(chosen_iso)
 
-        strategy = self._select_strategy()
         context = {"profile": profile, "passport_number": passport_number}
         modifications, is_fraud, fraud_type, fraud_reason = strategy.apply(canonical_record, context)
 
         passport = InspectionPassport(
             inspection_id=inspection_id,
+            shift_id=shift.shift_id,
+            passenger_index=current_idx,
+            total_passengers=shift.total_passengers,
             passenger_name=profile["name"],
             avatar_url=avatar_url,
             passport_number=passport_number,
@@ -130,26 +214,9 @@ class InspectionService:
         if not case:
             raise KeyError(f"Inspection ID '{inspection_id}' not found.")
 
+        shift = self.get_or_create_shift()
         is_wanted = case.passport.is_wanted_interpol
-        reason = "RED NOTICE: Suspect wanted for international wire fraud and passport forgery." if is_wanted else None
-
-        raw_json = (
-            f'{{"passport_number": "{passport_number}", "status": "WANTED", "notice": "RED", "crime": "WIRE_FRAUD"}}'
-            if is_wanted
-            else f'{{"passport_number": "{passport_number}", "status": "CLEARED", "records": 0}}'
-        )
-
-        telemetry = ProtocolTelemetry(
-            protocol="REST",
-            operation=f"GET /watchlist/{passport_number}",
-            endpoint_url=f"https://interpol.api.local/v1/watchlist/{passport_number}",
-            latency_ms=28.4,
-            bytes_sent=142,
-            bytes_received=len(raw_json.encode("utf-8")),
-            raw_request=f"GET /v1/watchlist/{passport_number} HTTP/1.1\r\nHost: interpol.api.local\r\nAccept: application/json\r\n",
-            raw_response=raw_json,
-            status_code=200
-        )
+        reason = "RED NOTICE: Suspect matches Daily Wanted Criminals Bulletin." if is_wanted else None
 
         return InterpolQueryResult(
             inspection_id=inspection_id,
@@ -157,7 +224,8 @@ class InspectionService:
             passenger_name=case.passport.passenger_name,
             is_wanted=is_wanted,
             wanted_reason=reason,
-            rest_telemetry=telemetry
+            wanted_list=shift.wanted_list,
+            rest_telemetry=shift.rest_telemetry
         )
 
     def simulate_protocol_faults(self) -> FaultSimulationResult:
@@ -266,6 +334,11 @@ class InspectionService:
 
         self._repository.delete(inspection_id)
 
+        shift_completed = False
+        if self._active_shift and self._active_shift.current_passenger_index >= self._active_shift.total_passengers:
+            self._active_shift.is_shift_completed = True
+            shift_completed = True
+
         return VerdictResult(
             inspection_id=inspection_id,
             decision=normalized_decision,
@@ -277,11 +350,12 @@ class InspectionService:
             fraud_reason=case.fraud_reason,
             score_delta=score_delta,
             traveler_reaction=traveler_reaction,
-            technical_explanation=explanation
+            technical_explanation=explanation,
+            is_shift_completed=shift_completed
         )
 
-    def _select_strategy(self) -> FraudStrategy:
-        should_fraud = random.random() < 0.55
+    def _select_non_wanted_strategy(self) -> FraudStrategy:
+        should_fraud = random.random() < 0.48
         if not should_fraud:
             return LegitimateStrategy()
-        return random.choice(self._fraud_strategies)
+        return random.choice(self._non_wanted_strategies)

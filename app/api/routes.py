@@ -6,6 +6,7 @@ from app.domain.models import (
     InspectionPassport,
     InterpolQueryResult,
     MainframeQueryResult,
+    ShiftSessionState,
     VerdictResult,
     VerdictSubmission,
 )
@@ -22,6 +23,19 @@ router = APIRouter(prefix="/api/inspections", tags=["Inspections"])
 def get_inspection_service() -> InspectionService:
     from app.main import inspection_service_instance
     return inspection_service_instance
+
+@router.post("/shift/start", response_model=ShiftSessionState)
+def start_new_shift_session(
+    service: InspectionService = Depends(get_inspection_service)
+) -> ShiftSessionState:
+    next_day = (service._active_shift.day_number + 1) if service._active_shift else 1
+    return service.start_new_shift(day_number=next_day)
+
+@router.get("/shift/current", response_model=ShiftSessionState)
+def get_current_shift_session(
+    service: InspectionService = Depends(get_inspection_service)
+) -> ShiftSessionState:
+    return service.get_or_create_shift()
 
 @router.get("/next", response_model=InspectionPassport)
 async def generate_next_inspection(
