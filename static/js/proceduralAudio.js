@@ -45,6 +45,42 @@ window.ProceduralAudioEngine = {
     oscillator.stop(ctx.currentTime + 0.055);
   },
 
+  playSlotSlide() {
+    const ctx = this.ensureContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(160, now);
+    osc.frequency.exponentialRampToValueAtTime(340, now + 0.14);
+    gain.gain.setValueAtTime(0.06, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.15);
+  },
+
+  playDotMatrixPrinter() {
+    const ctx = this.ensureContext();
+    if (!ctx) return;
+    const bursts = [0, 0.18, 0.36, 0.54, 0.72, 0.9, 1.08];
+    bursts.forEach((offset, idx) => {
+      const start = ctx.currentTime + offset;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(idx % 2 === 0 ? 1180 : 1320, start);
+      gain.gain.setValueAtTime(0.035, start);
+      gain.gain.exponentialRampToValueAtTime(0.002, start + 0.13);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(start);
+      osc.stop(start + 0.13);
+    });
+  },
+
   playModemHandshake() {
     const ctx = this.ensureContext();
     if (!ctx) return;

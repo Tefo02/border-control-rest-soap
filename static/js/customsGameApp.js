@@ -1,20 +1,26 @@
 window.customsGameApp = function () {
   return {
     passenger: null,
+    areDocumentsHandedOver: false,
     currentSpeech: '',
+    interrogationCycleIndex: 0,
     activeInterrogationTopic: null,
     mainframeData: null,
-    teletypeVisibleFields: 0,
+    isPrintingSoapSlip: false,
+    printedSoapSlip: null,
     interpolData: null,
+    printedInterpolSlip: null,
     faultSimulationData: null,
     activeWindow: 'mainframe',
     activeTelemetryTab: 'metrics',
     isDevDrawerOpen: false,
     showCitationPicker: false,
+    selectedViolationCategory: null,
+    stampStatusHint: 'DRAG PASSPORT HERE TO STAMP',
     manualCommand: '',
     dragState: window.DeskDragManager.createInitialState(),
     terminalLogs: [
-      { id: 1, text: 'IBM OS/390 CICS ONLINE. ENTER "QUERY <ISO>" OR COUNTRY CODE.', isError: false }
+      { id: 1, text: 'IBM OS/390 CICS ONLINE. TYPE ISO CODE TO QUERY WSDL.', isError: false }
     ],
     score: 0,
     inspectionsCount: 0,
@@ -46,6 +52,11 @@ window.customsGameApp = function () {
         if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') {
           return;
         }
+        if (event.code === 'Space' && this.passenger && !this.areDocumentsHandedOver) {
+          event.preventDefault();
+          this.requestDocumentsFromTraveler();
+          return;
+        }
         if (this.verdictReport && event.key === 'Enter') {
           event.preventDefault();
           this.dismissModalAndNext();
@@ -58,17 +69,6 @@ window.customsGameApp = function () {
           if (event.key === '4') this.confirmDenialWithCategory('INTERPOL_WANTED');
           if (event.key === 'Escape') this.showCitationPicker = false;
           return;
-        }
-        if (this.isSubmitting || this.verdictStamp !== null || !this.passenger) {
-          return;
-        }
-        const upperKey = event.key.toUpperCase();
-        if (upperKey === 'A') {
-          event.preventDefault();
-          this.submitDecision('APPROVE', null);
-        } else if (upperKey === 'D') {
-          event.preventDefault();
-          this.openDenialCitationPicker();
         }
       });
     },
@@ -83,24 +83,36 @@ window.customsGameApp = function () {
       }
     },
 
+    requestDocumentsFromTraveler() {
+      if (!this.passenger || this.areDocumentsHandedOver) return;
+      this.areDocumentsHandedOver = true;
+      this.currentSpeech = this.passenger.dialogue_speech;
+      window.DeskDragManager.resetTravelerDocuments(this.dragState);
+      window.ProceduralAudioEngine.playSlotSlide();
+    },
+
+    cycleDialogueOnBubbleClick() {
+      if (!this.passenger) return;
+      if (!this.areDocumentsHandedOver) {
+        this.requestDocumentsFromTraveler();
+        return;
+      }
+      const topics = ['origin', 'currency', 'purpose'];
+      const nextTopic = topics[this.interrogationCycleIndex % topics.length];
+      this.interrogationCycleIndex += 1;
+      this.askTraveler(nextTopic);
+    },
+
     askTraveler(topicKey) {
       if (!this.passenger || !this.passenger.interrogation_responses) return;
+      if (!this.areDocumentsHandedOver) {
+        this.requestDocumentsFromTraveler();
+      }
       const answer = this.passenger.interrogation_responses[topicKey];
       if (!answer) return;
       this.activeInterrogationTopic = topicKey;
       this.currentSpeech = answer;
       window.ProceduralAudioEngine.playKeyClick();
-    },
-
-    openDenialCitationPicker() {
-      if (!this.passenger || this.isSubmitting || this.verdictStamp !== null) return;
-      this.showCitationPicker = true;
-      window.ProceduralAudioEngine.playKeyClick();
-    },
-
-    confirmDenialWithCategory(categoryCode) {
-      this.showCitationPicker = false;
-      this.submitDecision('DENY', categoryCode);
     },
 
     startDocDrag(event, docKey) {
@@ -111,13 +123,43 @@ window.customsGameApp = function () {
     moveDocDrag(event) {
       if (!this.dragState.activeDocKey) return;
       const deskEl = this.$refs.deskSurface;
-      const activeKey = this.dragState.activeDocKey;
-      const docEl = activeKey === 'passport' ? this.$refs.passportDoc : this.$refs.manifestDoc;
+      const refMap = {
+        passport: this.$refs.passportDoc,
+        manifest: this.$refs.manifestDoc,
+        rulebook: this.$refs.rulebookDoc,
+        soapPrintout: this.$refs.soapPrintoutDoc,
+        interpolSlip: this.$refs.interpolSlipDoc
+      };
+      const docEl = refMap[this.dragState.activeDocKey];
       window.DeskDragManager.updateDrag(event, this.dragState, deskEl, docEl);
     },
 
     stopDocDrag(event) {
-      window.DeskDragManager.endDrag(event, this.dragState);
+      const deskEl = this.$refs.deskSurface;
+      const droppedDocKey = window.DeskDragManager.endDrag(event, this.dragState, deskEl);
+      if (droppedDocKey === 'passport' || droppedDocKey === 'manifest') {
+        this.handleDocumentDroppedInBoothSlot(droppedDocKey);
+      }
+    },
+
+    handleDocumentDroppedInBoothSlot(docKey) {
+      if (!this.verdictStamp) {
+        this.currentSpeech = 'Officer, you have not stamped my passport yet! Drag it to the stamp bay on the right first.';
+        window.ProceduralAudioEngine.playAlertBuzzer();
+        return;
+      }
+      this.dragState.documents[docKey].returned = true;
+      window.ProceduralAudioEngine.playSlotSlide();
+
+      const pReturned = this.dragState.documents.passport.returned;
+      const mReturned = this.dragState.documents.manifest.returned;
+
+      if (pReturned && mReturned) {
+        this.finalizeRoundVerdict();
+      } else {
+        const remainingName = pReturned ? 'Customs Manifest' : 'Stamped Passport';
+        this.currentSpeech = `Thank you. Please slide my ${remainingName} through the window slot as well.`;
+      }
     },
 
     getDocStyle(docKey) {
@@ -165,49 +207,32 @@ window.customsGameApp = function () {
       this.verdictStamp = null;
       this.verdictReport = null;
       this.showCitationPicker = false;
+      this.selectedViolationCategory = null;
+      this.areDocumentsHandedOver = false;
       this.activeInterrogationTopic = null;
+      this.interrogationCycleIndex = 0;
       this.mainframeData = null;
-      this.teletypeVisibleFields = 0;
+      this.printedSoapSlip = null;
+      this.isPrintingSoapSlip = false;
       this.interpolData = null;
+      this.printedInterpolSlip = null;
       this.manualCommand = '';
-      window.DeskDragManager.resetPositions(this.dragState);
 
       try {
         const res = await fetch('/api/inspections/next');
         this.passenger = await res.json();
-        this.currentSpeech = this.passenger.dialogue_speech;
+        this.currentSpeech = 'Good day, officer. Click here or press [PAPERS, PLEASE] so I can hand over my documents.';
         this.recordRestTelemetry(this.passenger.rest_telemetry);
         this.terminalLogs.push({
           id: Date.now(),
-          text: `ARRIVAL: ${this.passenger.passenger_name.toUpperCase()} [DOC: ${this.passenger.passport_number}]`,
+          text: `BOOTH SENSOR: VISITOR AT WINDOW (${this.passenger.passenger_name.toUpperCase()})`,
           isError: false
         });
-        window.ProceduralAudioEngine.playPaperRustle();
+        window.ProceduralAudioEngine.playKeyClick();
         this.$nextTick(() => {
           if (window.hljs && this.isDevDrawerOpen) window.hljs.highlightAll();
         });
       } catch (err) {}
-    },
-
-    runTeletypeReveal(record, bytesCount) {
-      this.teletypeVisibleFields = 0;
-      const steps = [
-        `DECODING SOAP XML ENVELOPE [${bytesCount} BYTES] AT 9600 BPS...`,
-        `  -> <m:sName>${record.name} (${record.iso_code})</m:sName>`,
-        `  -> <m:sCapitalCity>${record.capital}</m:sCapitalCity>`,
-        `  -> <m:sCurrencyISOCode>${record.currency_code}</m:sCurrencyISOCode> | DDI: +${record.phone_code}`
-      ];
-      steps.forEach((lineText, idx) => {
-        setTimeout(() => {
-          this.teletypeVisibleFields = idx + 1;
-          this.terminalLogs.push({
-            id: Date.now() + idx,
-            text: lineText,
-            isError: false
-          });
-          window.ProceduralAudioEngine.playKeyClick();
-        }, (idx + 1) * 120);
-      });
     },
 
     async executeManualSoapQuery() {
@@ -215,7 +240,6 @@ window.customsGameApp = function () {
       if (!raw || this.isQuerying || !this.passenger) return;
       const cleanIso = raw.replace('QUERY', '').replace('ISO', '').trim();
       this.isQuerying = true;
-      this.teletypeVisibleFields = 0;
       window.ProceduralAudioEngine.playModemHandshake();
       this.terminalLogs.push({ id: Date.now(), text: `> QUERY ${cleanIso}`, isError: false });
       this.terminalLogs.push({ id: Date.now() + 1, text: `DISPATCHING SOAP 1.1 ENVELOPE TO WSDL ENDPOINT...`, isError: false });
@@ -229,16 +253,41 @@ window.customsGameApp = function () {
         this.mainframeData = await res.json();
         this.recordSoapTelemetry(this.mainframeData.soap_telemetry);
         const rec = this.mainframeData.canonical_record;
-        if (rec && rec.name !== 'Unknown') {
-          this.runTeletypeReveal(rec, this.mainframeData.soap_telemetry.bytes_received);
-        } else {
-          this.terminalLogs.push({
-            id: Date.now() + 2,
-            text: `SOAP FAULT: NO CANONICAL RECORD FOR ISO '${cleanIso}'`,
-            isError: true
-          });
-          window.ProceduralAudioEngine.playAlertBuzzer();
-        }
+
+        this.isPrintingSoapSlip = true;
+        window.ProceduralAudioEngine.playDotMatrixPrinter();
+        this.terminalLogs.push({
+          id: Date.now() + 2,
+          text: `XML RECEIVED (${this.mainframeData.soap_telemetry.bytes_received}B). SPOOLING TO DOT-MATRIX PRINTER...`,
+          isError: false
+        });
+
+        setTimeout(() => {
+          this.isPrintingSoapSlip = false;
+          const deskWidth = this.$refs.deskSurface ? this.$refs.deskSurface.getBoundingClientRect().width : 1100;
+          window.DeskDragManager.spawnSoapPrintoutPosition(this.dragState, deskWidth);
+          if (rec && rec.name !== 'Unknown') {
+            this.printedSoapSlip = {
+              queriedIso: cleanIso,
+              isFault: false,
+              name: rec.name,
+              capital: rec.capital,
+              currency: rec.currency_code,
+              phone: '+' + rec.phone_code,
+              bytes: this.mainframeData.soap_telemetry.bytes_received,
+              latency: this.mainframeData.soap_telemetry.latency_ms
+            };
+          } else {
+            this.printedSoapSlip = {
+              queriedIso: cleanIso,
+              isFault: true,
+              faultMessage: `SOAP FAULT: ISO '${cleanIso}' NOT IN WSDL SCHEMA`,
+              bytes: this.mainframeData.soap_telemetry.bytes_received,
+              latency: this.mainframeData.soap_telemetry.latency_ms
+            };
+          }
+        }, 1400);
+
         this.manualCommand = '';
         this.$nextTick(() => {
           if (window.hljs && this.isDevDrawerOpen) window.hljs.highlightAll();
@@ -263,10 +312,17 @@ window.customsGameApp = function () {
         });
         this.interpolData = await res.json();
         this.recordRestTelemetry(this.interpolData.rest_telemetry);
+        window.DeskDragManager.spawnInterpolSlipPosition(this.dragState);
+        this.printedInterpolSlip = {
+          passportNumber: this.interpolData.passport_number,
+          passengerName: this.interpolData.passenger_name,
+          isWanted: this.interpolData.is_wanted,
+          wantedReason: this.interpolData.wanted_reason || 'NO ACTIVE INTERNATIONAL WARRANTS'
+        };
         if (this.interpolData.is_wanted) {
           window.ProceduralAudioEngine.playAlertBuzzer();
         } else {
-          window.ProceduralAudioEngine.playKeyClick();
+          window.ProceduralAudioEngine.playSlotSlide();
         }
       } catch (err) {
       } finally {
@@ -286,21 +342,51 @@ window.customsGameApp = function () {
       } catch (err) {}
     },
 
-    async submitDecision(decision, violationCategory) {
-      if (!this.passenger || this.isSubmitting || this.verdictStamp !== null) return;
-      this.isSubmitting = true;
+    ensurePassportInStampBay() {
+      if (!this.areDocumentsHandedOver) {
+        this.requestDocumentsFromTraveler();
+      }
+      if (!this.dragState.isPassportInStampBay) {
+        window.DeskDragManager.movePassportIntoStampBay(this.dragState, this.$refs.deskSurface);
+      }
+    },
+
+    stampPassportApprove() {
+      if (!this.passenger || this.isSubmitting) return;
+      this.ensurePassportInStampBay();
       this.showCitationPicker = false;
-      window.DeskDragManager.bringToFront(this.dragState, 'passport');
-      this.verdictStamp = decision;
+      this.selectedViolationCategory = null;
+      this.verdictStamp = 'APPROVE';
       window.ProceduralAudioEngine.playStampImpact();
+      this.currentSpeech = 'Passport stamped ADMITTED! Now drag my Passport and Manifest up to the window slot to hand them back.';
+    },
+
+    openDenialCitationPicker() {
+      if (!this.passenger || this.isSubmitting) return;
+      this.ensurePassportInStampBay();
+      this.showCitationPicker = true;
+      window.ProceduralAudioEngine.playKeyClick();
+    },
+
+    confirmDenialWithCategory(categoryCode) {
+      this.showCitationPicker = false;
+      this.selectedViolationCategory = categoryCode;
+      this.verdictStamp = 'DENY';
+      window.ProceduralAudioEngine.playStampImpact();
+      this.currentSpeech = 'Passport stamped DETAINED! Now drag my Passport and Manifest up to the window slot to return them.';
+    },
+
+    async finalizeRoundVerdict() {
+      if (!this.passenger || this.isSubmitting || !this.verdictStamp) return;
+      this.isSubmitting = true;
 
       try {
         const res = await fetch(`/api/inspections/${this.passenger.inspection_id}/verdict`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            decision,
-            violation_category: violationCategory
+            decision: this.verdictStamp,
+            violation_category: this.selectedViolationCategory
           })
         });
         const result = await res.json();
