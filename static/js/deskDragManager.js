@@ -21,24 +21,24 @@ window.DeskDragManager = {
           returned: false
         },
         passport: {
-          x: 215,
-          y: 58,
+          x: 195,
+          y: 54,
           z: 22,
           rotation: -2.6,
           isDragging: false,
           isFeeding: false,
           hiddenTopPx: 0,
-          returned: false
+          returned: true
         },
         manifest: {
-          x: 435,
-          y: 80,
+          x: 425,
+          y: 72,
           z: 20,
           rotation: 2.8,
           isDragging: false,
           isFeeding: false,
           hiddenTopPx: 0,
-          returned: false
+          returned: true
         }
       }
     };
@@ -93,32 +93,72 @@ window.DeskDragManager = {
     }
   },
 
+  animateSmoothSlotHandover(dragState, docKey, targetX, targetY, totalHeight, delayMs) {
+    const doc = dragState.documents[docKey];
+    if (!doc) return;
+    doc.returned = true;
+
+    setTimeout(() => {
+      const targetDoc = dragState.documents[docKey];
+      if (!targetDoc) return;
+      dragState.topZIndex += 1;
+      targetDoc.z = dragState.topZIndex;
+      targetDoc.x = targetX;
+      targetDoc.y = 6 - totalHeight;
+      targetDoc.rotation = 0;
+      targetDoc.isDragging = false;
+      targetDoc.isFeeding = true;
+      targetDoc.hiddenTopPx = totalHeight;
+      targetDoc.returned = false;
+
+      if (window.ProceduralAudioEngine) {
+        window.ProceduralAudioEngine.playSlotSlide();
+      }
+
+      const totalFrames = 14;
+      const frameInterval = 28;
+      const finalAngle = this.randomNaturalAngle();
+
+      for (let frame = 1; frame <= totalFrames; frame++) {
+        setTimeout(() => {
+          const current = dragState.documents[docKey];
+          if (!current || current.isDragging) return;
+          const progress = frame / totalFrames;
+          const eased = 1 - Math.pow(1 - progress, 2.2);
+
+          if (frame < totalFrames) {
+            const emerged = Math.round(totalHeight * eased);
+            const remainingHidden = Math.max(0, totalHeight - emerged);
+            current.hiddenTopPx = remainingHidden;
+            current.y = Math.round(6 - remainingHidden + (targetY - 6) * eased);
+            current.rotation = Number((finalAngle * progress * 0.5).toFixed(1));
+          } else {
+            current.isFeeding = false;
+            current.hiddenTopPx = 0;
+            current.y = targetY;
+            current.rotation = finalAngle;
+            if (window.ProceduralAudioEngine) {
+              window.ProceduralAudioEngine.playPaperRustle();
+            }
+          }
+        }, frame * frameInterval);
+      }
+    }, delayMs);
+  },
+
   resetTravelerDocuments(dragState) {
     dragState.activeDocKey = null;
     dragState.isHoveringReturnSlot = false;
     dragState.isHoveringTrashBin = false;
     dragState.isPassportInStampBay = false;
-    dragState.documents.passport = {
-      x: 195 + Math.floor(Math.random() * 24),
-      y: 52 + Math.floor(Math.random() * 14),
-      z: dragState.topZIndex + 2,
-      rotation: this.randomNaturalAngle(),
-      isDragging: false,
-      isFeeding: false,
-      hiddenTopPx: 0,
-      returned: false
-    };
-    dragState.documents.manifest = {
-      x: 425 + Math.floor(Math.random() * 24),
-      y: 70 + Math.floor(Math.random() * 16),
-      z: dragState.topZIndex + 1,
-      rotation: this.randomNaturalAngle(),
-      isDragging: false,
-      isFeeding: false,
-      hiddenTopPx: 0,
-      returned: false
-    };
-    dragState.topZIndex += 3;
+
+    const passportTargetX = 155 + Math.floor(Math.random() * 20);
+    const passportTargetY = 52 + Math.floor(Math.random() * 12);
+    const manifestTargetX = 395 + Math.floor(Math.random() * 20);
+    const manifestTargetY = 68 + Math.floor(Math.random() * 14);
+
+    this.animateSmoothSlotHandover(dragState, 'passport', passportTargetX, passportTargetY, 240, 0);
+    this.animateSmoothSlotHandover(dragState, 'manifest', manifestTargetX, manifestTargetY, 250, 540);
   },
 
   registerSoapPrintout(dragState, slipId, deskWidth, slipCount, onFinishCallback) {
@@ -303,7 +343,7 @@ window.DeskDragManager = {
   buildDocumentInlineStyle(docState) {
     if (!docState || docState.returned) return 'display: none;';
     const scaleValue = docState.isDragging ? 1.03 : 1.0;
-    const rot = docState.isFeeding ? 0 : docState.rotation;
+    const rot = docState.isFeeding ? docState.rotation : docState.rotation;
     const clipStyle = docState.isFeeding && docState.hiddenTopPx > 0
       ? `clip-path: inset(${docState.hiddenTopPx}px -30px -30px -30px);`
       : '';
