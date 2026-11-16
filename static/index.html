@@ -7,12 +7,12 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-  <link rel="stylesheet" href="/css/deskAndDocuments.css?v=20261116_10">
-  <link rel="stylesheet" href="/css/crtTerminal.css?v=20261116_10">
-  <script src="/js/mrzGenerator.js?v=20261116_10"></script>
-  <script src="/js/proceduralAudio.js?v=20261116_10"></script>
-  <script src="/js/deskDragManager.js?v=20261116_10"></script>
-  <script src="/js/customsGameApp.js?v=20261116_10"></script>
+  <link rel="stylesheet" href="/css/deskAndDocuments.css?v=20261116_11">
+  <link rel="stylesheet" href="/css/crtTerminal.css?v=20261116_11">
+  <script src="/js/mrzGenerator.js?v=20261116_11"></script>
+  <script src="/js/proceduralAudio.js?v=20261116_11"></script>
+  <script src="/js/deskDragManager.js?v=20261116_11"></script>
+  <script src="/js/customsGameApp.js?v=20261116_11"></script>
   <script defer src="https://unpkg.com/alpinejs@3.14.3/dist/cdn.min.js"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col select-none" x-data="customsGameApp()" x-init="initWorkstation()">
@@ -182,11 +182,11 @@
       </section>
 
       <section class="lg:col-span-7 flex flex-col justify-between h-[346px]">
-        <div class="crt-monitor-housing p-3.5 flex-1 flex flex-col justify-between overflow-hidden">
-          <div class="crt-screen-recess flex-1 flex flex-col overflow-hidden">
-            <div class="crt-glass-tube p-3.5 h-[220px] flex flex-col justify-between font-crt text-lg overflow-hidden">
+        <div class="crt-monitor-housing p-3 flex-1 min-h-0 flex flex-col justify-between overflow-hidden">
+          <div class="crt-screen-recess flex-1 min-h-0 flex flex-col overflow-hidden">
+            <div class="crt-glass-tube p-3 flex-1 min-h-0 flex flex-col justify-between font-crt text-lg overflow-hidden">
 
-              <div class="flex items-center justify-between border-b border-emerald-900/80 pb-1.5 mb-2 relative z-10">
+              <div class="shrink-0 flex items-center justify-between border-b border-emerald-900/80 pb-1 mb-1.5 relative z-10">
                 <span class="text-emerald-400 text-sm tracking-widest font-bold">IBM OS/390 TERMINAL</span>
                 <div class="flex space-x-1.5 font-mono text-[10px]">
                   <button @click="activeWindow = 'mainframe'" :class="activeWindow === 'mainframe' ? 'bg-emerald-500 text-black font-black' : 'bg-black/70 text-emerald-400 border border-emerald-700'" class="px-2.5 py-0.5 rounded transition">
@@ -198,28 +198,28 @@
                 </div>
               </div>
 
-              <div x-show="activeWindow === 'mainframe'" class="flex-1 flex flex-col justify-between relative z-10">
-                <div class="flex items-start space-x-3">
+              <div x-show="activeWindow === 'mainframe'" class="flex-1 min-h-0 flex flex-col justify-between relative z-10 overflow-hidden">
+                <div class="flex items-start space-x-3 flex-1 min-h-0 overflow-hidden">
                   <div class="shrink-0 text-center">
-                    <img :src="(passenger && travelerAnimationState !== 'empty') ? passenger.avatar_url : 'https://api.dicebear.com/9.x/notionists/svg?seed=CRT'" alt="CRT Fax" class="w-14 h-14 rounded crt-phosphor-portrait object-cover">
-                    <span class="text-[10px] text-emerald-500 block mt-0.5">LIVE CAM</span>
+                    <img :src="(passenger && travelerAnimationState !== 'empty') ? passenger.avatar_url : 'https://api.dicebear.com/9.x/notionists/svg?seed=CRT'" alt="CRT Fax" class="w-12 h-12 rounded crt-phosphor-portrait object-cover">
+                    <span class="text-[9px] text-emerald-500 block mt-0.5">LIVE CAM</span>
                   </div>
 
-                  <div class="flex-1 overflow-y-auto max-h-28 space-y-0.5 text-base text-emerald-400 leading-tight crt-text-glow">
-                    <template x-for="log in terminalLogs.slice(-5)" :key="log.id">
+                  <div x-ref="terminalLogBox" class="flex-1 h-full overflow-y-auto space-y-0.5 text-sm text-emerald-400 leading-snug crt-text-glow pr-1">
+                    <template x-for="log in terminalLogs" :key="log.id">
                       <div :class="log.isError ? 'text-rose-400' : 'text-emerald-300'" x-text="log.text"></div>
                     </template>
                   </div>
                 </div>
 
-                <div class="border-t border-emerald-950 pt-2 mt-2 flex items-center space-x-2">
-                  <span class="text-emerald-400 font-bold text-xl">&gt;</span>
+                <div class="shrink-0 border-t border-emerald-950 pt-1.5 mt-1.5 flex items-center space-x-2">
+                  <span class="text-emerald-400 font-bold text-lg">&gt;</span>
                   <input
                     type="text"
                     x-model="manualCommand"
                     @keydown.enter="executeManualSoapQuery()"
                     placeholder="ENTER ISO CODE (EX: JP, BR, DE)..."
-                    class="flex-1 bg-black/85 text-emerald-300 border border-emerald-700 rounded px-2.5 py-1 font-crt text-lg uppercase tracking-wider focus:outline-none focus:border-emerald-400"
+                    class="flex-1 bg-black/85 text-emerald-300 border border-emerald-700 rounded px-2.5 py-1 font-crt text-base uppercase tracking-wider focus:outline-none focus:border-emerald-400"
                   >
                   <button @click="executeManualSoapQuery()" :disabled="isQuerying || isPrintingSoapSlip" class="px-3 py-1 bg-emerald-900 hover:bg-emerald-800 disabled:opacity-50 border border-emerald-500 text-emerald-100 text-xs font-bold rounded transition font-mono">
                     <span x-text="isQuerying ? 'DIALING...' : (isPrintingSoapSlip ? 'PRINTING...' : 'PRINT WSDL')"></span>
@@ -227,8 +227,8 @@
                 </div>
               </div>
 
-              <div x-show="activeWindow === 'interpol'" class="flex-1 flex flex-col justify-between relative z-10 font-mono text-xs text-emerald-300">
-                <div class="bg-black/60 border border-emerald-800/80 rounded-lg p-3 space-y-1.5">
+              <div x-show="activeWindow === 'interpol'" class="flex-1 min-h-0 flex flex-col justify-between relative z-10 font-mono text-xs text-emerald-300 overflow-hidden">
+                <div class="bg-black/60 border border-emerald-800/80 rounded-lg p-2.5 space-y-1 flex-1 min-h-0 overflow-y-auto">
                   <div class="text-emerald-400 font-bold flex items-center justify-between">
                     <span>INTERPOL RED NOTICE SPOOLER // DAY <span x-text="shiftState ? shiftState.day_number : 1"></span></span>
                     <span class="px-1.5 py-0.5 bg-emerald-950 border border-emerald-700 text-[10px] rounded">LPT1 SPOOL ONLY</span>
@@ -238,12 +238,12 @@
                   </p>
                 </div>
 
-                <div class="flex items-center justify-between pt-2 border-t border-emerald-950">
+                <div class="shrink-0 flex items-center justify-between pt-1.5 mt-1.5 border-t border-emerald-950">
                   <span class="text-[11px] text-emerald-500" x-text="'COPIES ON DESK: ' + printedWantedPosters.length"></span>
                   <button
                     @click="printDailyWantedPoster()"
                     :disabled="isPrintingWantedPoster"
-                    class="px-4 py-1.5 bg-emerald-800 hover:bg-emerald-700 disabled:opacity-50 border border-emerald-400 text-white font-bold rounded text-xs transition"
+                    class="px-4 py-1 bg-emerald-800 hover:bg-emerald-700 disabled:opacity-50 border border-emerald-400 text-white font-bold rounded text-xs transition"
                   >
                     <span x-text="isPrintingWantedPoster ? 'PRINTING SHEET...' : 'PRINT DAILY WANTED LIST'"></span>
                   </button>
@@ -253,7 +253,7 @@
             </div>
           </div>
 
-          <div class="pt-2.5 px-2 flex items-center justify-between">
+          <div class="shrink-0 pt-2 px-2 flex items-center justify-between">
             <div class="flex items-center space-x-3">
               <span class="px-2 py-0.5 bg-stone-800 text-amber-100 font-mono font-black text-[10px] tracking-widest rounded border border-stone-600">IBM 8514/A</span>
               <span class="text-[10px] font-mono font-bold text-stone-700">CRT MONITOR</span>

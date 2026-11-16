@@ -129,6 +129,20 @@ window.customsGameApp = function () {
       });
     },
 
+    pushTerminalLog(text, isError = false) {
+      this.terminalLogs.push({
+        id: Date.now() + Math.random(),
+        text,
+        isError
+      });
+      this.$nextTick(() => {
+        const logBox = this.$refs.terminalLogBox;
+        if (logBox) {
+          logBox.scrollTop = logBox.scrollHeight;
+        }
+      });
+    },
+
     appendChatMessage(sender, text) {
       this.chatMessages.push({
         id: Date.now() + Math.random(),
@@ -324,11 +338,10 @@ window.customsGameApp = function () {
             this.shiftState.total_passengers = this.passenger.total_passengers;
           }
           this.recordRestTelemetry(this.passenger.rest_telemetry);
-          this.terminalLogs.push({
-            id: Date.now(),
-            text: `VISITOR #${this.passenger.passenger_index}/${this.passenger.total_passengers}: ${this.passenger.passenger_name.toUpperCase()}`,
-            isError: false
-          });
+          this.pushTerminalLog(
+            `VISITOR #${this.passenger.passenger_index}/${this.passenger.total_passengers}: ${this.passenger.passenger_name.toUpperCase()}`,
+            false
+          );
 
           setTimeout(() => {
             this.travelerAnimationState = 'idle';
@@ -349,8 +362,8 @@ window.customsGameApp = function () {
       this.isQuerying = true;
       this.manualCommand = '';
       window.ProceduralAudioEngine.playModemHandshake();
-      this.terminalLogs.push({ id: Date.now(), text: `> QUERY ${cleanIso}`, isError: false });
-      this.terminalLogs.push({ id: Date.now() + 1, text: `DIALING OORSPRONG GATEWAY [9600 BAUD]...`, isError: false });
+      this.pushTerminalLog(`> QUERY ${cleanIso}`, false);
+      this.pushTerminalLog(`DIALING OORSPRONG GATEWAY [9600 BAUD]...`, false);
 
       try {
         const res = await fetch(`/api/inspections/${this.passenger.inspection_id}/mainframe-query`, {
@@ -361,11 +374,10 @@ window.customsGameApp = function () {
         const queryData = await res.json();
 
         setTimeout(() => {
-          this.terminalLogs.push({
-            id: Date.now() + 2,
-            text: `PARSING SOAP 1.1 ENVELOPE (${queryData.soap_telemetry.bytes_received} BYTES)...`,
-            isError: false
-          });
+          this.pushTerminalLog(
+            `PARSING SOAP 1.1 ENVELOPE (${queryData.soap_telemetry.bytes_received} BYTES)...`,
+            false
+          );
           window.ProceduralAudioEngine.playKeyClick();
         }, 850);
 
@@ -376,11 +388,7 @@ window.customsGameApp = function () {
 
           this.isQuerying = false;
           this.isPrintingSoapSlip = true;
-          this.terminalLogs.push({
-            id: Date.now() + 3,
-            text: `WSDL VERIFIED -> FEEDING TRACTOR PAPER ON LPT1...`,
-            isError: false
-          });
+          this.pushTerminalLog(`WSDL VERIFIED -> FEEDING TRACTOR PAPER ON LPT1...`, false);
 
           const slipId = 'soapSlip_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
           const deskWidth = this.$refs.deskSurface ? this.$refs.deskSurface.getBoundingClientRect().width : 1000;
