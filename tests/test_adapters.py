@@ -1,4 +1,5 @@
 import pytest
+from app.adapters.random_user_adapter import RandomUserAdapter
 from app.adapters.rest_adapter import RestCountriesAdapter
 from app.adapters.soap_adapter import SoapCountryInfoAdapter
 
@@ -14,6 +15,20 @@ async def test_rest_countries_adapter():
     assert telemetry.bytes_sent > 0
     assert telemetry.bytes_received > 0
     assert "{" in telemetry.raw_response
+
+@pytest.mark.asyncio
+async def test_random_user_adapter_by_country():
+    adapter = RandomUserAdapter()
+    profile_br, tel_br = await adapter.fetch_identity_for_country("BR")
+    assert profile_br.full_name
+    assert len(profile_br.full_name.split()) >= 2
+    assert profile_br.nationality_code == "BR"
+    assert tel_br.protocol == "REST"
+    assert "randomuser.me" in tel_br.endpoint_url
+
+    profile_jp, tel_jp = await adapter.fetch_identity_for_country("JP")
+    assert profile_jp.full_name
+    assert profile_jp.nationality_code == "JP"
 
 def test_soap_country_info_adapter():
     adapter = SoapCountryInfoAdapter()

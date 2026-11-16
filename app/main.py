@@ -2,6 +2,7 @@ from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from app.adapters.random_user_adapter import RandomUserAdapter
 from app.adapters.rest_adapter import RestCountriesAdapter
 from app.adapters.soap_adapter import SoapCountryInfoAdapter
 from app.api.routes import router as inspections_router
@@ -11,11 +12,13 @@ from app.game.service import InspectionService
 inspection_repository_instance = InspectionRepository()
 rest_adapter_instance = RestCountriesAdapter()
 soap_adapter_instance = SoapCountryInfoAdapter()
+random_user_adapter_instance = RandomUserAdapter()
 
 inspection_service_instance = InspectionService(
     repository=inspection_repository_instance,
     rest_adapter=rest_adapter_instance,
-    soap_adapter=soap_adapter_instance
+    soap_adapter=soap_adapter_instance,
+    random_user_adapter=random_user_adapter_instance
 )
 
 app = FastAPI(

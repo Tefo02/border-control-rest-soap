@@ -1,7 +1,9 @@
+import asyncio
 import json
 import random
 import uuid
 from typing import Optional
+from app.adapters.random_user_adapter import REGIONAL_CULTURAL_NAMES, RandomUserAdapter
 from app.adapters.rest_adapter import RestCountriesAdapter
 from app.adapters.soap_adapter import SoapCountryInfoAdapter
 from app.domain.models import (
@@ -36,27 +38,33 @@ CURATED_ISO_CODES = [
     "GR", "NL", "BE", "CH", "SE", "NO", "FI", "DK", "IE", "PL"
 ]
 
-PASSENGER_PROFILES = [
-    {"name": "Alex Mercer", "age": 34, "birth": "1992-06-14", "purpose": "Software Engineering Conference", "crime": "International Wire Fraud"},
-    {"name": "Elena Rostova", "age": 29, "birth": "1997-03-22", "purpose": "Tourism & Architecture Tour", "crime": "Diplomatic Document Forgery"},
-    {"name": "Kenji Sato", "age": 41, "birth": "1985-11-09", "purpose": "Automotive Supply Chain Audit", "crime": "Industrial Espionage"},
-    {"name": "Carlos Mendoza", "age": 38, "birth": "1988-08-30", "purpose": "Import/Export Cargo Inspection", "crime": "Contraband Currency Smuggling"},
-    {"name": "Fatima Al-Mansoor", "age": 31, "birth": "1995-01-17", "purpose": "Medical Fellowship Program", "crime": "Unauthorized Bio-Data Transfer"},
-    {"name": "Liam O'Connor", "age": 45, "birth": "1981-05-04", "purpose": "Agricultural Equipment Sales", "crime": "Customs Tariff Evasion"},
-    {"name": "Astrid Lindholm", "age": 27, "birth": "1999-09-12", "purpose": "Renewable Energy Research", "crime": "Satellite Mainframe Intrusion"},
-    {"name": "Mateo Silva", "age": 36, "birth": "1990-12-03", "purpose": "International Film Festival", "crime": "Art & Antiquities Trafficking"},
-    {"name": "Chloe Dubois", "age": 33, "birth": "1993-07-25", "purpose": "Gastronomy & Wine Tasting Tour", "crime": "Identity Theft Syndicate"},
-    {"name": "Viktor Vance", "age": 52, "birth": "1974-02-19", "purpose": "Financial Investment Consulting", "crime": "Offshore Money Laundering"},
-    {"name": "Nadia Petrova", "age": 30, "birth": "1996-04-11", "purpose": "Classical Music Conservatory", "crime": "Encrypted Courier Interception"},
-    {"name": "Tariq Haddad", "age": 44, "birth": "1982-10-02", "purpose": "Maritime Logistics Summit", "crime": "Falsified Naval Manifests"},
-    {"name": "Hana Takahashi", "age": 26, "birth": "2000-01-29", "purpose": "Robotics Symposium", "crime": "Microchip Export Violation"},
-    {"name": "Marcus Sterling", "age": 49, "birth": "1977-07-08", "purpose": "Mineral Extraction Advisory", "crime": "Sovereign Bond Counterfeiting"},
-    {"name": "Sofia Rossi", "age": 32, "birth": "1994-05-19", "purpose": "Fashion Textile Exhibition", "crime": "Luxury Goods Smuggling"},
-    {"name": "Henrik Ibsen", "age": 47, "birth": "1979-11-23", "purpose": "Arctic Hydrography Survey", "crime": "Subsea Cable Tampering"},
-    {"name": "Amara Okafor", "age": 28, "birth": "1998-02-14", "purpose": "Telecommunications Forum", "crime": "Frequency Spectrum Hijacking"},
-    {"name": "Lucas Van Der Berg", "age": 39, "birth": "1987-09-05", "purpose": "Diamond Valuation Congress", "crime": "Unregistered Bullion Transport"},
-    {"name": "Mei-Ling Zhou", "age": 35, "birth": "1991-12-18", "purpose": "Quantum Computing Workshop", "crime": "Cryogenic Hardware Theft"},
-    {"name": "Rafael Morales", "age": 42, "birth": "1984-03-07", "purpose": "Coffee Export Trade Fair", "crime": "Forged Phytosanitary Permits"}
+TRAVEL_PURPOSES = [
+    "Software Engineering Conference",
+    "Tourism & Architecture Tour",
+    "Automotive Supply Chain Audit",
+    "Import/Export Cargo Inspection",
+    "Medical Fellowship Program",
+    "Agricultural Equipment Sales",
+    "Renewable Energy Research",
+    "International Film Festival",
+    "Gastronomy & Wine Tasting Tour",
+    "Financial Investment Consulting",
+    "Classical Music Conservatory",
+    "Maritime Logistics Summit",
+    "Robotics & Automation Symposium",
+    "Mineral Extraction Advisory"
+]
+
+WANTED_CRIMES = [
+    "International Wire Fraud",
+    "Diplomatic Document Forgery",
+    "Industrial Espionage",
+    "Contraband Currency Smuggling",
+    "Satellite Mainframe Intrusion",
+    "Identity Theft Syndicate",
+    "Offshore Money Laundering",
+    "Encrypted Courier Interception",
+    "Sovereign Bond Counterfeiting"
 ]
 
 class InspectionService:
@@ -64,11 +72,13 @@ class InspectionService:
         self,
         repository: InspectionRepository,
         rest_adapter: RestCountriesAdapter,
-        soap_adapter: SoapCountryInfoAdapter
+        soap_adapter: SoapCountryInfoAdapter,
+        random_user_adapter: Optional[RandomUserAdapter] = None
     ):
         self._repository = repository
         self._rest_adapter = rest_adapter
         self._soap_adapter = soap_adapter
+        self._random_user_adapter = random_user_adapter or RandomUserAdapter()
         self._non_wanted_strategies: list[FraudStrategy] = [
             CapitalMismatchStrategy(),
             CurrencyMismatchStrategy(),
@@ -87,28 +97,49 @@ class InspectionService:
     def start_new_shift(self, day_number: int = 1) -> ShiftSessionState:
         shift_id = str(uuid.uuid4())
         total_passengers = random.randint(6, 10)
-        wanted_profiles = random.sample(PASSENGER_PROFILES, k=3)
+        wanted_isos = random.sample(CURATED_ISO_CODES, k=3)
+        wanted_crimes = random.sample(WANTED_CRIMES, k=3)
+        wanted_entries: list[dict] = []
         wanted_models: list[WantedCriminalProfile] = []
+        used_names: set[str] = set()
 
-        for idx, prof in enumerate(wanted_profiles):
-            seed = prof["name"].replace(" ", "")
+        for idx, iso_code in enumerate(wanted_isos):
+            candidates = REGIONAL_CULTURAL_NAMES.get(iso_code, REGIONAL_CULTURAL_NAMES["BR"])
+            first, last = random.choice(candidates)
+            full_name = f"{first} {last}"
+            used_names.add(full_name)
+            age = random.randint(26, 54)
+            birth = f"{2026 - age}-{random.randint(1, 12):02d}-{random.randint(1, 28):02d}"
+            purpose = random.choice(TRAVEL_PURPOSES)
+            crime = wanted_crimes[idx]
+            seed = full_name.replace(" ", "")
+
+            entry = {
+                "name": full_name,
+                "age": age,
+                "birth": birth,
+                "purpose": purpose,
+                "crime": crime,
+                "iso": iso_code
+            }
+            wanted_entries.append(entry)
             wanted_models.append(
                 WantedCriminalProfile(
                     criminal_id=f"WNT-{100 + idx}",
-                    passenger_name=prof["name"],
+                    passenger_name=full_name,
                     avatar_url=f"https://api.dicebear.com/9.x/notionists/svg?seed={seed}",
-                    crime_description=prof["crime"],
-                    alias_hint=f"DOB: {prof['birth']} ({prof['age']} YRS)"
+                    crime_description=crime,
+                    alias_hint=f"NAT: {iso_code} // DOB: {birth}"
                 )
             )
 
         wanted_count = random.choice([1, 2])
         chosen_slots = random.sample(range(1, total_passengers + 1), k=wanted_count)
-        chosen_criminals = random.sample(wanted_profiles, k=wanted_count)
+        chosen_criminals = random.sample(wanted_entries, k=wanted_count)
         self._wanted_slots = {
             slot: chosen_criminals[i] for i, slot in enumerate(chosen_slots)
         }
-        self._used_non_wanted_names = {p["name"] for p in wanted_profiles}
+        self._used_non_wanted_names = set(used_names)
 
         raw_json = json.dumps([w.model_dump() for w in wanted_models], indent=2)
         telemetry = ProtocolTelemetry(
@@ -146,29 +177,32 @@ class InspectionService:
         current_idx = shift.current_passenger_index
 
         inspection_id = str(uuid.uuid4())
-        chosen_iso = random.choice(CURATED_ISO_CODES)
 
         if current_idx in self._wanted_slots:
-            profile = self._wanted_slots[current_idx]
+            wanted_info = self._wanted_slots[current_idx]
+            chosen_iso = wanted_info["iso"]
+            canonical_record, rest_telemetry = await self._rest_adapter.fetch_country(chosen_iso)
+            profile = wanted_info
             strategy: FraudStrategy = self._interpol_strategy
         else:
-            available_pool = [
-                p for p in PASSENGER_PROFILES if p["name"] not in self._used_non_wanted_names
-            ]
-            if not available_pool:
-                self._used_non_wanted_names = {w.passenger_name for w in shift.wanted_list}
-                available_pool = [
-                    p for p in PASSENGER_PROFILES if p["name"] not in self._used_non_wanted_names
-                ]
-            profile = random.choice(available_pool)
-            self._used_non_wanted_names.add(profile["name"])
+            chosen_iso = random.choice(CURATED_ISO_CODES)
+            (canonical_record, country_telemetry), (identity_profile, user_telemetry) = await asyncio.gather(
+                self._rest_adapter.fetch_country(chosen_iso),
+                self._random_user_adapter.fetch_identity_for_country(chosen_iso, self._used_non_wanted_names)
+            )
+            self._used_non_wanted_names.add(identity_profile.full_name)
+            profile = {
+                "name": identity_profile.full_name,
+                "age": identity_profile.age,
+                "birth": identity_profile.birth_date,
+                "purpose": random.choice(TRAVEL_PURPOSES)
+            }
             strategy = self._select_non_wanted_strategy()
+            rest_telemetry = self._merge_rest_telemetries(country_telemetry, user_telemetry)
 
         avatar_seed = profile["name"].replace(" ", "")
         avatar_url = f"https://api.dicebear.com/9.x/notionists/svg?seed={avatar_seed}"
         passport_number = f"P{random.randint(10000000, 99999999)}"
-
-        canonical_record, rest_telemetry = await self._rest_adapter.fetch_country(chosen_iso)
 
         context = {"profile": profile, "passport_number": passport_number}
         modifications, is_fraud, fraud_type, fraud_reason = strategy.apply(canonical_record, context)
@@ -214,6 +248,40 @@ class InspectionService:
         )
         self._repository.save(case)
         return passport
+
+    def _merge_rest_telemetries(
+        self,
+        country_tel: ProtocolTelemetry,
+        user_tel: ProtocolTelemetry
+    ) -> ProtocolTelemetry:
+        try:
+            country_json = json.loads(country_tel.raw_response)
+        except Exception:
+            country_json = country_tel.raw_response
+        try:
+            user_json = json.loads(user_tel.raw_response)
+        except Exception:
+            user_json = user_tel.raw_response
+
+        combined_payload = json.dumps(
+            {
+                "countries_api_response": country_json,
+                "randomuser_api_response": user_json
+            },
+            indent=2,
+            ensure_ascii=False
+        )
+        return ProtocolTelemetry(
+            protocol="REST",
+            operation=f"{country_tel.operation} + {user_tel.operation}",
+            endpoint_url=f"{country_tel.endpoint_url} | {user_tel.endpoint_url}",
+            latency_ms=round(max(country_tel.latency_ms, user_tel.latency_ms), 2),
+            bytes_sent=country_tel.bytes_sent + user_tel.bytes_sent,
+            bytes_received=country_tel.bytes_received + user_tel.bytes_received,
+            raw_request=f"{country_tel.raw_request}\n{user_tel.raw_request}",
+            raw_response=combined_payload,
+            status_code=200
+        )
 
     def query_mainframe(self, inspection_id: str, query_iso_code: str) -> MainframeQueryResult:
         case = self._repository.get(inspection_id)

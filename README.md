@@ -10,6 +10,7 @@ Aplicação web acadêmica e gamificada no estilo *Papers, Please*, desenvolvida
 | :--- | :--- | :--- | :--- | :--- |
 | **CountryInfoService (SOAP 1.1 / XML)** | **Mainframe Governamental (1999):** Fonte canônica e imutável de dados internacionais (Capital, Moeda, Código DDI, Continente). | [Oorsprong CountryInfo Docs](http://webservices.oorsprong.org/websamples.countryinfo/CountryInfoService.wso) | [CountryInfoService.wso?WSDL](http://webservices.oorsprong.org/websamples.countryinfo/CountryInfoService.wso?WSDL) | [`contracts/CountryInfoService.wsdl`](./contracts/CountryInfoService.wsdl) |
 | **Countries API (Cloudflare / REST JSON)** | **Terminal do Viajante (2026):** Dados dinâmicos de países, capitais, bandeiras e códigos de discagem. | [Cloudflare Countries API](https://countries-api.davegarvey.workers.dev/countries) | `https://countries-api.davegarvey.workers.dev/countries/{code}` | N/A (JSON Schema Dinâmico) |
+| **RandomUser Generator API (REST JSON)** | **Identidade Cultural Dinâmica (2026):** Gera nomes reais e datas de nascimento nativas de acordo com a nacionalidade (`?nat={iso}`) do viajante. | [RandomUser.me Documentation](https://randomuser.me/documentation) | `https://randomuser.me/api/?nat={code}&inc=name,dob,nat` | N/A (JSON Schema Dinâmico) |
 | **Interpol Biometric Watchlist (REST JSON)** | **Registro de Segurança (2026):** Consulta em tempo real de mandados internacionais e status criminal. | Módulo Nativo REST | `/api/inspections/{id}/interpol-query` | N/A (REST JSON Endpoint) |
 
 ---
