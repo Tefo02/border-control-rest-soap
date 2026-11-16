@@ -66,8 +66,8 @@ class InspectionService:
         inspection_id = str(uuid.uuid4())
         chosen_iso = random.choice(CURATED_ISO_CODES)
         profile = random.choice(PASSENGER_PROFILES)
-        avatar_seed = f"{profile['name'].replace(' ', '')}-{random.randint(1000, 9999)}"
-        avatar_url = f"https://api.dicebear.com/7.x/bottts/svg?seed={avatar_seed}"
+        avatar_seed = encode_seed = profile["name"].replace(" ", "")
+        avatar_url = f"https://api.dicebear.com/9.x/notionists/svg?seed={avatar_seed}"
         passport_number = f"P{random.randint(10000000, 99999999)}"
 
         canonical_record, rest_telemetry = await self._rest_adapter.fetch_country(chosen_iso)
