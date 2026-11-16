@@ -1,26 +1,27 @@
 window.customsGameApp = function () {
   return {
+    shiftState: null,
     passenger: null,
     areDocumentsHandedOver: false,
-    currentSpeech: '',
+    chatMessages: [],
     interrogationCycleIndex: 0,
     activeInterrogationTopic: null,
+    rulebookPage: 0,
     mainframeData: null,
     isPrintingSoapSlip: false,
-    printedSoapSlip: null,
-    interpolData: null,
-    printedInterpolSlip: null,
+    printedSoapSlips: [],
+    isPrintingWantedPoster: false,
+    printedWantedPoster: null,
     faultSimulationData: null,
     activeWindow: 'mainframe',
     activeTelemetryTab: 'metrics',
     isDevDrawerOpen: false,
     showCitationPicker: false,
     selectedViolationCategory: null,
-    stampStatusHint: 'DRAG PASSPORT HERE TO STAMP',
     manualCommand: '',
     dragState: window.DeskDragManager.createInitialState(),
     terminalLogs: [
-      { id: 1, text: 'IBM OS/390 CICS ONLINE. TYPE ISO CODE TO QUERY WSDL.', isError: false }
+      { id: 1, text: 'IBM OS/390 CICS ONLINE. TYPE ISO CODE TO PRINT WSDL RECORD.', isError: false }
     ],
     score: 0,
     inspectionsCount: 0,
@@ -35,15 +36,14 @@ window.customsGameApp = function () {
       totalSoapBytes: 0
     },
     isQuerying: false,
-    isInterpolQuerying: false,
     isSubmitting: false,
     verdictStamp: null,
     verdictReport: null,
 
-    initWorkstation() {
+    async initWorkstation() {
       window.ProceduralAudioEngine.ensureContext();
       this.registerKeyboardShortcuts();
-      this.loadNextTraveler();
+      await this.startNewShiftDay();
     },
 
     registerKeyboardShortcuts() {
@@ -59,7 +59,7 @@ window.customsGameApp = function () {
         }
         if (this.verdictReport && event.key === 'Enter') {
           event.preventDefault();
-          this.dismissModalAndNext();
+          this.advanceAfterVerdict();
           return;
         }
         if (this.showCitationPicker) {
@@ -69,6 +69,64 @@ window.customsGameApp = function () {
           if (event.key === '4') this.confirmDenialWithCategory('INTERPOL_WANTED');
           if (event.key === 'Escape') this.showCitationPicker = false;
           return;
+        }
+      });
+    },
+
+    async startNewShiftDay() {
+      this.printedSoapSlips = [];
+      this.printedWantedPoster = null;
+      this.verdictReport = null;
+      try {
+        const res = await fetch('/api/inspections/shift/start', { method: 'POST' });
+        this.shiftState = await res.json();
+        this.recordRestTelemetry(this.shiftState.rest_telemetry);
+        this.terminalLogs.push({
+          id: Date.now(),
+          text: `DAY ${this.shiftState.day_number} SHIFT INITIALIZED (${this.shiftState.total_passengers} PASSENGERS IN QUEUE).`,
+          isError: false
+        });
+        await this.loadNextTraveler();
+      } catch (err) {}
+    },
+
+    openRulebook() {
+      this.rulebookPage = 1;
+      window.ProceduralAudioEngine.playPaperRustle();
+    },
+
+    nextRulebookPage() {
+      if (this.rulebookPage < 3) {
+        this.rulebookPage += 1;
+        window.ProceduralAudioEngine.playPaperRustle();
+      }
+    },
+
+    prevRulebookPage() {
+      if (this.rulebookPage > 1) {
+        this.rulebookPage -= 1;
+        window.ProceduralAudioEngine.playPaperRustle();
+      } else {
+        this.rulebookPage = 0;
+        window.ProceduralAudioEngine.playPaperRustle();
+      }
+    },
+
+    closeRulebookCover() {
+      this.rulebookPage = 0;
+      window.ProceduralAudioEngine.playPaperRustle();
+    },
+
+    appendChatMessage(sender, text) {
+      this.chatMessages.push({
+        id: Date.now() + Math.random(),
+        sender,
+        text
+      });
+      this.$nextTick(() => {
+        const box = this.$refs.chatScrollBox;
+        if (box) {
+          box.scrollTop = box.scrollHeight;
         }
       });
     },
@@ -86,21 +144,10 @@ window.customsGameApp = function () {
     requestDocumentsFromTraveler() {
       if (!this.passenger || this.areDocumentsHandedOver) return;
       this.areDocumentsHandedOver = true;
-      this.currentSpeech = this.passenger.dialogue_speech;
+      this.appendChatMessage('OFFICER', 'Papers, please. Place your passport and customs manifest in the slot.');
+      this.appendChatMessage('TRAVELER', this.passenger.dialogue_speech);
       window.DeskDragManager.resetTravelerDocuments(this.dragState);
       window.ProceduralAudioEngine.playSlotSlide();
-    },
-
-    cycleDialogueOnBubbleClick() {
-      if (!this.passenger) return;
-      if (!this.areDocumentsHandedOver) {
-        this.requestDocumentsFromTraveler();
-        return;
-      }
-      const topics = ['origin', 'currency', 'purpose'];
-      const nextTopic = topics[this.interrogationCycleIndex % topics.length];
-      this.interrogationCycleIndex += 1;
-      this.askTraveler(nextTopic);
     },
 
     askTraveler(topicKey) {
@@ -108,10 +155,16 @@ window.customsGameApp = function () {
       if (!this.areDocumentsHandedOver) {
         this.requestDocumentsFromTraveler();
       }
+      const officerPrompts = {
+        origin: 'State your city of origin and embassy phone prefix.',
+        currency: 'Confirm the currency declared on your customs manifest.',
+        purpose: 'What is the exact purpose and duration of your stay?'
+      };
       const answer = this.passenger.interrogation_responses[topicKey];
       if (!answer) return;
       this.activeInterrogationTopic = topicKey;
-      this.currentSpeech = answer;
+      this.appendChatMessage('OFFICER', officerPrompts[topicKey] || 'Clarify your statement.');
+      this.appendChatMessage('TRAVELER', answer);
       window.ProceduralAudioEngine.playKeyClick();
     },
 
@@ -123,14 +176,13 @@ window.customsGameApp = function () {
     moveDocDrag(event) {
       if (!this.dragState.activeDocKey) return;
       const deskEl = this.$refs.deskSurface;
-      const refMap = {
-        passport: this.$refs.passportDoc,
-        manifest: this.$refs.manifestDoc,
-        rulebook: this.$refs.rulebookDoc,
-        soapPrintout: this.$refs.soapPrintoutDoc,
-        interpolSlip: this.$refs.interpolSlipDoc
-      };
-      const docEl = refMap[this.dragState.activeDocKey];
+      const activeKey = this.dragState.activeDocKey;
+      let docEl = null;
+      if (activeKey === 'passport') docEl = this.$refs.passportDoc;
+      else if (activeKey === 'manifest') docEl = this.$refs.manifestDoc;
+      else if (activeKey === 'rulebook') docEl = this.$refs.rulebookDoc;
+      else if (activeKey === 'wantedPoster') docEl = this.$refs.wantedPosterDoc;
+      else docEl = document.getElementById(activeKey);
       window.DeskDragManager.updateDrag(event, this.dragState, deskEl, docEl);
     },
 
@@ -144,7 +196,7 @@ window.customsGameApp = function () {
 
     handleDocumentDroppedInBoothSlot(docKey) {
       if (!this.verdictStamp) {
-        this.currentSpeech = 'Officer, you have not stamped my passport yet! Drag it to the stamp bay on the right first.';
+        this.appendChatMessage('TRAVELER', 'Officer, you have not stamped my passport yet! Use the stamp bay on the right first.');
         window.ProceduralAudioEngine.playAlertBuzzer();
         return;
       }
@@ -158,7 +210,7 @@ window.customsGameApp = function () {
         this.finalizeRoundVerdict();
       } else {
         const remainingName = pReturned ? 'Customs Manifest' : 'Stamped Passport';
-        this.currentSpeech = `Thank you. Please slide my ${remainingName} through the window slot as well.`;
+        this.appendChatMessage('TRAVELER', `Thank you. Please slide my ${remainingName} through the slot as well.`);
       }
     },
 
@@ -212,20 +264,21 @@ window.customsGameApp = function () {
       this.activeInterrogationTopic = null;
       this.interrogationCycleIndex = 0;
       this.mainframeData = null;
-      this.printedSoapSlip = null;
-      this.isPrintingSoapSlip = false;
-      this.interpolData = null;
-      this.printedInterpolSlip = null;
       this.manualCommand = '';
+      this.chatMessages = [];
 
       try {
         const res = await fetch('/api/inspections/next');
         this.passenger = await res.json();
-        this.currentSpeech = 'Good day, officer. Click here or press [PAPERS, PLEASE] so I can hand over my documents.';
+        if (this.shiftState) {
+          this.shiftState.current_passenger_index = this.passenger.passenger_index;
+          this.shiftState.total_passengers = this.passenger.total_passengers;
+        }
+        this.appendChatMessage('TRAVELER', 'Good day, officer. Ready for inspection.');
         this.recordRestTelemetry(this.passenger.rest_telemetry);
         this.terminalLogs.push({
           id: Date.now(),
-          text: `BOOTH SENSOR: VISITOR AT WINDOW (${this.passenger.passenger_name.toUpperCase()})`,
+          text: `VISITOR #${this.passenger.passenger_index}/${this.passenger.total_passengers}: ${this.passenger.passenger_name.toUpperCase()}`,
           isError: false
         });
         window.ProceduralAudioEngine.playKeyClick();
@@ -242,7 +295,7 @@ window.customsGameApp = function () {
       this.isQuerying = true;
       window.ProceduralAudioEngine.playModemHandshake();
       this.terminalLogs.push({ id: Date.now(), text: `> QUERY ${cleanIso}`, isError: false });
-      this.terminalLogs.push({ id: Date.now() + 1, text: `DISPATCHING SOAP 1.1 ENVELOPE TO WSDL ENDPOINT...`, isError: false });
+      this.terminalLogs.push({ id: Date.now() + 1, text: `DISPATCHING SOAP 1.1 ENVELOPE...`, isError: false });
 
       try {
         const res = await fetch(`/api/inspections/${this.passenger.inspection_id}/mainframe-query`, {
@@ -258,35 +311,37 @@ window.customsGameApp = function () {
         window.ProceduralAudioEngine.playDotMatrixPrinter();
         this.terminalLogs.push({
           id: Date.now() + 2,
-          text: `XML RECEIVED (${this.mainframeData.soap_telemetry.bytes_received}B). SPOOLING TO DOT-MATRIX PRINTER...`,
+          text: `XML (${this.mainframeData.soap_telemetry.bytes_received}B) -> PRINTING SLIP TO DESK...`,
           isError: false
         });
 
-        setTimeout(() => {
-          this.isPrintingSoapSlip = false;
-          const deskWidth = this.$refs.deskSurface ? this.$refs.deskSurface.getBoundingClientRect().width : 1100;
-          window.DeskDragManager.spawnSoapPrintoutPosition(this.dragState, deskWidth);
-          if (rec && rec.name !== 'Unknown') {
-            this.printedSoapSlip = {
+        const slipId = 'soapSlip_' + Date.now();
+        const deskWidth = this.$refs.deskSurface ? this.$refs.deskSurface.getBoundingClientRect().width : 1100;
+        const nextCount = this.printedSoapSlips.length + 1;
+        window.DeskDragManager.registerSoapPrintout(this.dragState, slipId, deskWidth, nextCount);
+
+        const newSlip = (rec && rec.name !== 'Unknown')
+          ? {
+              id: slipId,
               queriedIso: cleanIso,
               isFault: false,
               name: rec.name,
               capital: rec.capital,
               currency: rec.currency_code,
-              phone: '+' + rec.phone_code,
-              bytes: this.mainframeData.soap_telemetry.bytes_received,
-              latency: this.mainframeData.soap_telemetry.latency_ms
-            };
-          } else {
-            this.printedSoapSlip = {
+              phone: '+' + rec.phone_code
+            }
+          : {
+              id: slipId,
               queriedIso: cleanIso,
               isFault: true,
-              faultMessage: `SOAP FAULT: ISO '${cleanIso}' NOT IN WSDL SCHEMA`,
-              bytes: this.mainframeData.soap_telemetry.bytes_received,
-              latency: this.mainframeData.soap_telemetry.latency_ms
+              faultMessage: `SOAP FAULT: ISO '${cleanIso}' INVALID`
             };
-          }
-        }, 1400);
+
+        this.printedSoapSlips.push(newSlip);
+
+        setTimeout(() => {
+          this.isPrintingSoapSlip = false;
+        }, 1750);
 
         this.manualCommand = '';
         this.$nextTick(() => {
@@ -299,34 +354,25 @@ window.customsGameApp = function () {
       }
     },
 
-    async queryInterpol() {
-      if (!this.passenger || this.isInterpolQuerying) return;
-      this.isInterpolQuerying = true;
-      window.ProceduralAudioEngine.playKeyClick();
+    async printDailyWantedPoster() {
+      if (this.isPrintingWantedPoster) return;
+      this.isPrintingWantedPoster = true;
+      window.ProceduralAudioEngine.playDotMatrixPrinter();
 
       try {
-        const res = await fetch(`/api/inspections/${this.passenger.inspection_id}/interpol-query`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ passport_number: this.passenger.passport_number })
-        });
-        this.interpolData = await res.json();
-        this.recordRestTelemetry(this.interpolData.rest_telemetry);
-        window.DeskDragManager.spawnInterpolSlipPosition(this.dragState);
-        this.printedInterpolSlip = {
-          passportNumber: this.interpolData.passport_number,
-          passengerName: this.interpolData.passenger_name,
-          isWanted: this.interpolData.is_wanted,
-          wantedReason: this.interpolData.wanted_reason || 'NO ACTIVE INTERNATIONAL WARRANTS'
+        const res = await fetch('/api/inspections/shift/current');
+        this.shiftState = await res.json();
+        const deskWidth = this.$refs.deskSurface ? this.$refs.deskSurface.getBoundingClientRect().width : 1100;
+        window.DeskDragManager.spawnWantedPosterPosition(this.dragState, deskWidth);
+        this.printedWantedPoster = {
+          dayNumber: this.shiftState.day_number,
+          criminals: this.shiftState.wanted_list
         };
-        if (this.interpolData.is_wanted) {
-          window.ProceduralAudioEngine.playAlertBuzzer();
-        } else {
-          window.ProceduralAudioEngine.playSlotSlide();
-        }
       } catch (err) {
       } finally {
-        this.isInterpolQuerying = false;
+        setTimeout(() => {
+          this.isPrintingWantedPoster = false;
+        }, 1200);
       }
     },
 
@@ -358,7 +404,7 @@ window.customsGameApp = function () {
       this.selectedViolationCategory = null;
       this.verdictStamp = 'APPROVE';
       window.ProceduralAudioEngine.playStampImpact();
-      this.currentSpeech = 'Passport stamped ADMITTED! Now drag my Passport and Manifest up to the window slot to hand them back.';
+      this.appendChatMessage('SYSTEM', 'Passport stamped ADMITTED. Drag Passport and Manifest up to the top slot to return them.');
     },
 
     openDenialCitationPicker() {
@@ -373,7 +419,7 @@ window.customsGameApp = function () {
       this.selectedViolationCategory = categoryCode;
       this.verdictStamp = 'DENY';
       window.ProceduralAudioEngine.playStampImpact();
-      this.currentSpeech = 'Passport stamped DETAINED! Now drag my Passport and Manifest up to the window slot to return them.';
+      this.appendChatMessage('SYSTEM', `Passport stamped DETAINED (${categoryCode}). Drag Passport and Manifest up to the top slot to return them.`);
     },
 
     async finalizeRoundVerdict() {
@@ -394,7 +440,7 @@ window.customsGameApp = function () {
         this.inspectionsCount++;
         if (result.is_correct) this.correctCount++;
         this.accuracyRate = Math.round((this.correctCount / this.inspectionsCount) * 100);
-        this.currentSpeech = result.traveler_reaction;
+        this.appendChatMessage('TRAVELER', result.traveler_reaction);
         this.verdictReport = result;
 
         if (!result.is_correct) {
@@ -408,9 +454,13 @@ window.customsGameApp = function () {
       }
     },
 
-    dismissModalAndNext() {
-      this.verdictReport = null;
-      this.loadNextTraveler();
+    advanceAfterVerdict() {
+      if (this.verdictReport && this.verdictReport.is_shift_completed) {
+        this.startNewShiftDay();
+      } else {
+        this.verdictReport = null;
+        this.loadNextTraveler();
+      }
     },
 
     calculateOverhead() {
