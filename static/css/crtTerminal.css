@@ -2,10 +2,25 @@
   font-family: 'VT323', monospace;
 }
 
+.crt-outer-chassis {
+  background: linear-gradient(145deg, #2d333b 0%, #1c2026 100%);
+  border: 4px solid #3f4752;
+  border-bottom-width: 10px;
+  box-shadow:
+    inset 0 2px 4px rgba(255, 255, 255, 0.12),
+    0 12px 30px rgba(0, 0, 0, 0.85);
+}
+
+.crt-inner-bezel {
+  background: #0a0d0e;
+  border: 6px solid #14181d;
+  box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.95);
+}
+
 .crt-monitor {
   background: radial-gradient(circle, #0b2210 0%, #030904 100%);
   color: #33ff66;
-  box-shadow: inset 0 0 55px rgba(0, 255, 102, 0.22), 0 10px 30px rgba(0, 0, 0, 0.92);
+  box-shadow: inset 0 0 55px rgba(0, 255, 102, 0.22);
   position: relative;
 }
 
@@ -34,4 +49,10 @@
 
 .crt-text-glow {
   text-shadow: 0 0 6px rgba(51, 255, 102, 0.45);
+}
+
+.dot-matrix-printer-slot {
+  background: linear-gradient(180deg, #090b0e 0%, #181c22 100%);
+  border: 2px solid #374151;
+  box-shadow: inset 0 4px 10px rgba(0, 0, 0, 0.95);
 }
