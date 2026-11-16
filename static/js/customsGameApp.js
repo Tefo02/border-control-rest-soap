@@ -1,10 +1,16 @@
 window.customsGameApp = function () {
   return {
     passenger: null,
+    currentSpeech: '',
+    activeInterrogationTopic: null,
     mainframeData: null,
+    teletypeVisibleFields: 0,
     interpolData: null,
+    faultSimulationData: null,
     activeWindow: 'mainframe',
     activeTelemetryTab: 'metrics',
+    isDevDrawerOpen: false,
+    showCitationPicker: false,
     manualCommand: '',
     dragState: window.DeskDragManager.createInitialState(),
     terminalLogs: [
@@ -14,11 +20,19 @@ window.customsGameApp = function () {
     inspectionsCount: 0,
     correctCount: 0,
     accuracyRate: 100,
+    sessionStats: {
+      restCalls: 0,
+      soapCalls: 0,
+      totalRestLatency: 0,
+      totalSoapLatency: 0,
+      totalRestBytes: 0,
+      totalSoapBytes: 0
+    },
     isQuerying: false,
     isInterpolQuerying: false,
     isSubmitting: false,
     verdictStamp: null,
-    verdictModal: null,
+    verdictReport: null,
 
     initWorkstation() {
       window.ProceduralAudioEngine.ensureContext();
@@ -32,9 +46,17 @@ window.customsGameApp = function () {
         if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') {
           return;
         }
-        if (this.verdictModal && event.key === 'Enter') {
+        if (this.verdictReport && event.key === 'Enter') {
           event.preventDefault();
           this.dismissModalAndNext();
+          return;
+        }
+        if (this.showCitationPicker) {
+          if (event.key === '1') this.confirmDenialWithCategory('WSDL_MISMATCH');
+          if (event.key === '2') this.confirmDenialWithCategory('EXPIRED_PASSPORT');
+          if (event.key === '3') this.confirmDenialWithCategory('VERBAL_CONTRADICTION');
+          if (event.key === '4') this.confirmDenialWithCategory('INTERPOL_WANTED');
+          if (event.key === 'Escape') this.showCitationPicker = false;
           return;
         }
         if (this.isSubmitting || this.verdictStamp !== null || !this.passenger) {
@@ -43,12 +65,42 @@ window.customsGameApp = function () {
         const upperKey = event.key.toUpperCase();
         if (upperKey === 'A') {
           event.preventDefault();
-          this.submitDecision('APPROVE');
+          this.submitDecision('APPROVE', null);
         } else if (upperKey === 'D') {
           event.preventDefault();
-          this.submitDecision('DENY');
+          this.openDenialCitationPicker();
         }
       });
+    },
+
+    toggleDevDrawer() {
+      this.isDevDrawerOpen = !this.isDevDrawerOpen;
+      window.ProceduralAudioEngine.playKeyClick();
+      if (this.isDevDrawerOpen) {
+        this.$nextTick(() => {
+          if (window.hljs) window.hljs.highlightAll();
+        });
+      }
+    },
+
+    askTraveler(topicKey) {
+      if (!this.passenger || !this.passenger.interrogation_responses) return;
+      const answer = this.passenger.interrogation_responses[topicKey];
+      if (!answer) return;
+      this.activeInterrogationTopic = topicKey;
+      this.currentSpeech = answer;
+      window.ProceduralAudioEngine.playKeyClick();
+    },
+
+    openDenialCitationPicker() {
+      if (!this.passenger || this.isSubmitting || this.verdictStamp !== null) return;
+      this.showCitationPicker = true;
+      window.ProceduralAudioEngine.playKeyClick();
+    },
+
+    confirmDenialWithCategory(categoryCode) {
+      this.showCitationPicker = false;
+      this.submitDecision('DENY', categoryCode);
     },
 
     startDocDrag(event, docKey) {
@@ -85,9 +137,37 @@ window.customsGameApp = function () {
       return window.MrzAndBarcodeGenerator.generateBarcodeRectangles(seed);
     },
 
+    recordRestTelemetry(telemetry) {
+      if (!telemetry) return;
+      this.sessionStats.restCalls += 1;
+      this.sessionStats.totalRestLatency += telemetry.latency_ms || 0;
+      this.sessionStats.totalRestBytes += telemetry.bytes_received || 0;
+    },
+
+    recordSoapTelemetry(telemetry) {
+      if (!telemetry) return;
+      this.sessionStats.soapCalls += 1;
+      this.sessionStats.totalSoapLatency += telemetry.latency_ms || 0;
+      this.sessionStats.totalSoapBytes += telemetry.bytes_received || 0;
+    },
+
+    averageRestLatency() {
+      if (!this.sessionStats.restCalls) return '0.0';
+      return (this.sessionStats.totalRestLatency / this.sessionStats.restCalls).toFixed(1);
+    },
+
+    averageSoapLatency() {
+      if (!this.sessionStats.soapCalls) return '0.0';
+      return (this.sessionStats.totalSoapLatency / this.sessionStats.soapCalls).toFixed(1);
+    },
+
     async loadNextTraveler() {
       this.verdictStamp = null;
+      this.verdictReport = null;
+      this.showCitationPicker = false;
+      this.activeInterrogationTopic = null;
       this.mainframeData = null;
+      this.teletypeVisibleFields = 0;
       this.interpolData = null;
       this.manualCommand = '';
       window.DeskDragManager.resetPositions(this.dragState);
@@ -95,16 +175,39 @@ window.customsGameApp = function () {
       try {
         const res = await fetch('/api/inspections/next');
         this.passenger = await res.json();
+        this.currentSpeech = this.passenger.dialogue_speech;
+        this.recordRestTelemetry(this.passenger.rest_telemetry);
         this.terminalLogs.push({
           id: Date.now(),
-          text: `NEW ARRIVAL: ${this.passenger.passenger_name.toUpperCase()} [DOC: ${this.passenger.passport_number}]`,
+          text: `ARRIVAL: ${this.passenger.passenger_name.toUpperCase()} [DOC: ${this.passenger.passport_number}]`,
           isError: false
         });
         window.ProceduralAudioEngine.playPaperRustle();
         this.$nextTick(() => {
-          if (window.hljs) window.hljs.highlightAll();
+          if (window.hljs && this.isDevDrawerOpen) window.hljs.highlightAll();
         });
       } catch (err) {}
+    },
+
+    runTeletypeReveal(record, bytesCount) {
+      this.teletypeVisibleFields = 0;
+      const steps = [
+        `DECODING SOAP XML ENVELOPE [${bytesCount} BYTES] AT 9600 BPS...`,
+        `  -> <m:sName>${record.name} (${record.iso_code})</m:sName>`,
+        `  -> <m:sCapitalCity>${record.capital}</m:sCapitalCity>`,
+        `  -> <m:sCurrencyISOCode>${record.currency_code}</m:sCurrencyISOCode> | DDI: +${record.phone_code}`
+      ];
+      steps.forEach((lineText, idx) => {
+        setTimeout(() => {
+          this.teletypeVisibleFields = idx + 1;
+          this.terminalLogs.push({
+            id: Date.now() + idx,
+            text: lineText,
+            isError: false
+          });
+          window.ProceduralAudioEngine.playKeyClick();
+        }, (idx + 1) * 120);
+      });
     },
 
     async executeManualSoapQuery() {
@@ -112,6 +215,7 @@ window.customsGameApp = function () {
       if (!raw || this.isQuerying || !this.passenger) return;
       const cleanIso = raw.replace('QUERY', '').replace('ISO', '').trim();
       this.isQuerying = true;
+      this.teletypeVisibleFields = 0;
       window.ProceduralAudioEngine.playModemHandshake();
       this.terminalLogs.push({ id: Date.now(), text: `> QUERY ${cleanIso}`, isError: false });
       this.terminalLogs.push({ id: Date.now() + 1, text: `DISPATCHING SOAP 1.1 ENVELOPE TO WSDL ENDPOINT...`, isError: false });
@@ -123,14 +227,10 @@ window.customsGameApp = function () {
           body: JSON.stringify({ query_iso_code: cleanIso })
         });
         this.mainframeData = await res.json();
+        this.recordSoapTelemetry(this.mainframeData.soap_telemetry);
         const rec = this.mainframeData.canonical_record;
         if (rec && rec.name !== 'Unknown') {
-          this.terminalLogs.push({
-            id: Date.now() + 2,
-            text: `WSDL MATCH: ${rec.name} | CAP: ${rec.capital} | CURR: ${rec.currency_code} | DDI: +${rec.phone_code}`,
-            isError: false
-          });
-          window.ProceduralAudioEngine.playKeyClick();
+          this.runTeletypeReveal(rec, this.mainframeData.soap_telemetry.bytes_received);
         } else {
           this.terminalLogs.push({
             id: Date.now() + 2,
@@ -141,7 +241,7 @@ window.customsGameApp = function () {
         }
         this.manualCommand = '';
         this.$nextTick(() => {
-          if (window.hljs) window.hljs.highlightAll();
+          if (window.hljs && this.isDevDrawerOpen) window.hljs.highlightAll();
         });
       } catch (err) {
         this.terminalLogs.push({ id: Date.now() + 3, text: `NETWORK FAULT TALKING TO WSDL GATEWAY`, isError: true });
@@ -162,23 +262,34 @@ window.customsGameApp = function () {
           body: JSON.stringify({ passport_number: this.passenger.passport_number })
         });
         this.interpolData = await res.json();
+        this.recordRestTelemetry(this.interpolData.rest_telemetry);
         if (this.interpolData.is_wanted) {
           window.ProceduralAudioEngine.playAlertBuzzer();
         } else {
           window.ProceduralAudioEngine.playKeyClick();
         }
-        this.$nextTick(() => {
-          if (window.hljs) window.hljs.highlightAll();
-        });
       } catch (err) {
       } finally {
         this.isInterpolQuerying = false;
       }
     },
 
-    async submitDecision(decision) {
+    async triggerFaultSimulation() {
+      window.ProceduralAudioEngine.playModemHandshake();
+      try {
+        const res = await fetch('/api/inspections/debug/fault-simulation', { method: 'POST' });
+        this.faultSimulationData = await res.json();
+        this.activeTelemetryTab = 'fault_sim';
+        this.$nextTick(() => {
+          if (window.hljs) window.hljs.highlightAll();
+        });
+      } catch (err) {}
+    },
+
+    async submitDecision(decision, violationCategory) {
       if (!this.passenger || this.isSubmitting || this.verdictStamp !== null) return;
       this.isSubmitting = true;
+      this.showCitationPicker = false;
       window.DeskDragManager.bringToFront(this.dragState, 'passport');
       this.verdictStamp = decision;
       window.ProceduralAudioEngine.playStampImpact();
@@ -187,22 +298,24 @@ window.customsGameApp = function () {
         const res = await fetch(`/api/inspections/${this.passenger.inspection_id}/verdict`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ decision })
+          body: JSON.stringify({
+            decision,
+            violation_category: violationCategory
+          })
         });
         const result = await res.json();
         this.score += result.score_delta;
         this.inspectionsCount++;
         if (result.is_correct) this.correctCount++;
         this.accuracyRate = Math.round((this.correctCount / this.inspectionsCount) * 100);
+        this.currentSpeech = result.traveler_reaction;
+        this.verdictReport = result;
 
-        setTimeout(() => {
-          this.verdictModal = result;
-          if (!result.is_correct) {
-            window.ProceduralAudioEngine.playAlertBuzzer();
-          } else {
-            window.ProceduralAudioEngine.playKeyClick();
-          }
-        }, 650);
+        if (!result.is_correct) {
+          window.ProceduralAudioEngine.playAlertBuzzer();
+        } else {
+          window.ProceduralAudioEngine.playKeyClick();
+        }
       } catch (err) {
       } finally {
         this.isSubmitting = false;
@@ -210,7 +323,7 @@ window.customsGameApp = function () {
     },
 
     dismissModalAndNext() {
-      this.verdictModal = null;
+      this.verdictReport = null;
       this.loadNextTraveler();
     },
 

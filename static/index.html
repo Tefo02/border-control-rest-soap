@@ -32,14 +32,22 @@
         <span class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span>
         <span class="font-bold text-slate-200 uppercase tracking-widest text-sm">BORDER CHECKPOINT // BOOTH #04</span>
       </div>
-      <span class="text-slate-600">|</span>
-      <span class="text-slate-400">PROTOCOL BRIDGE: <span class="text-emerald-400">SOAP 1.1 WSDL (1999)</span> &harr; <span class="text-sky-400">REST JSON (2026)</span></span>
+      <span class="text-slate-600 hidden sm:inline">|</span>
+      <span class="text-slate-400 hidden sm:inline">MINISTRY OF CUSTOMS &amp; IMMIGRATION</span>
     </div>
 
-    <div class="flex items-center space-x-6">
+    <div class="flex items-center space-x-5">
       <div>SCORE: <span class="font-bold text-emerald-400 text-sm" x-text="score">0</span> PTS</div>
       <div>INSPECTED: <span class="font-semibold text-slate-200" x-text="inspectionsCount">0</span></div>
       <div>ACCURACY: <span class="font-semibold text-sky-400" x-text="accuracyRate + '%'">100%</span></div>
+      <button
+        @click="toggleDevDrawer()"
+        :class="isDevDrawerOpen ? 'bg-amber-500/20 text-amber-300 border-amber-500/60' : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-slate-200'"
+        class="px-2.5 py-1 rounded border text-[11px] font-bold transition flex items-center space-x-1.5"
+      >
+        <span class="w-2 h-2 rounded-full" :class="isDevDrawerOpen ? 'bg-amber-400 animate-ping' : 'bg-slate-500'"></span>
+        <span x-text="isDevDrawerOpen ? 'HIDE DEV AUDIT' : 'DEV / AUDIT CONSOLE'"></span>
+      </button>
     </div>
   </header>
 
@@ -50,26 +58,97 @@
         <span class="absolute -bottom-1 -right-1 text-[10px] bg-slate-950 px-1.5 py-0.5 rounded font-mono border border-slate-700 text-amber-400">BOOTH</span>
       </div>
 
-      <div class="relative bg-slate-800 border border-slate-700 rounded-2xl p-3.5 shadow-lg speech-bubble-tail flex-1">
-        <div class="flex items-center justify-between mb-1">
-          <span class="text-[11px] font-bold text-sky-400 tracking-wider uppercase" x-text="passenger ? passenger.passenger_name + ' (SPOKEN TESTIMONY)' : 'WAITING IN LINE'"></span>
-          <span class="text-[10px] text-slate-400 font-mono" x-text="passenger ? 'DECLARED PURPOSE: ' + passenger.travel_purpose : ''"></span>
+      <div class="flex-1 space-y-2">
+        <div class="relative bg-slate-800 border border-slate-700 rounded-2xl p-3.5 shadow-lg speech-bubble-tail">
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-[11px] font-bold text-sky-400 tracking-wider uppercase" x-text="passenger ? passenger.passenger_name + ' (SPOKEN TESTIMONY)' : 'WAITING IN LINE'"></span>
+            <span class="text-[10px] text-slate-400 font-mono" x-text="passenger ? 'DECLARED PURPOSE: ' + passenger.travel_purpose : ''"></span>
+          </div>
+          <p class="text-sm font-medium text-slate-100 italic" x-text="currentSpeech ? '“' + currentSpeech + '”' : 'Next traveler approaching checkpoint...'"></p>
         </div>
-        <p class="text-sm font-medium text-slate-100 italic" x-text="passenger ? '“' + passenger.dialogue_speech + '”' : 'Next traveler approaching checkpoint...'"></p>
+
+        <div class="flex flex-wrap items-center gap-2 pt-1 pl-2" x-show="passenger && !verdictReport">
+          <span class="text-[10px] font-mono text-slate-400 uppercase tracking-wider">INTERROGATE:</span>
+          <button
+            @click="askTraveler('origin')"
+            :class="activeInterrogationTopic === 'origin' ? 'bg-sky-900/70 border-sky-500 text-sky-200' : 'bg-slate-800/80 border-slate-700 text-slate-300 hover:bg-slate-800'"
+            class="px-2.5 py-1 rounded-lg border text-[11px] font-mono transition"
+          >
+            [? Verify Origin &amp; DDI]
+          </button>
+          <button
+            @click="askTraveler('currency')"
+            :class="activeInterrogationTopic === 'currency' ? 'bg-sky-900/70 border-sky-500 text-sky-200' : 'bg-slate-800/80 border-slate-700 text-slate-300 hover:bg-slate-800'"
+            class="px-2.5 py-1 rounded-lg border text-[11px] font-mono transition"
+          >
+            [? Question Currency]
+          </button>
+          <button
+            @click="askTraveler('purpose')"
+            :class="activeInterrogationTopic === 'purpose' ? 'bg-sky-900/70 border-sky-500 text-sky-200' : 'bg-slate-800/80 border-slate-700 text-slate-300 hover:bg-slate-800'"
+            class="px-2.5 py-1 rounded-lg border text-[11px] font-mono transition"
+          >
+            [? Demand Purpose Details]
+          </button>
+        </div>
       </div>
     </div>
 
-    <div class="flex items-center space-x-3">
-      <button @click="submitDecision('APPROVE')" :disabled="isSubmitting || verdictStamp !== null" class="px-5 py-3 bg-emerald-700 hover:bg-emerald-600 disabled:bg-slate-800 disabled:text-slate-600 text-white font-black rounded-xl shadow-lg shadow-emerald-950 flex items-center space-x-2 transition tracking-wider text-xs border border-emerald-500/40">
+    <div class="flex items-center space-x-3" x-show="!verdictReport">
+      <button @click="submitDecision('APPROVE', null)" :disabled="isSubmitting || verdictStamp !== null" class="px-5 py-3 bg-emerald-700 hover:bg-emerald-600 disabled:bg-slate-800 disabled:text-slate-600 text-white font-black rounded-xl shadow-lg shadow-emerald-950 flex items-center space-x-2 transition tracking-wider text-xs border border-emerald-500/40">
         <span>&#10003;</span>
         <span>STAMP APPROVE [A]</span>
       </button>
-      <button @click="submitDecision('DENY')" :disabled="isSubmitting || verdictStamp !== null" class="px-5 py-3 bg-rose-700 hover:bg-rose-600 disabled:bg-slate-800 disabled:text-slate-600 text-white font-black rounded-xl shadow-lg shadow-rose-950 flex items-center space-x-2 transition tracking-wider text-xs border border-rose-500/40">
+      <button @click="openDenialCitationPicker()" :disabled="isSubmitting || verdictStamp !== null" class="px-5 py-3 bg-rose-700 hover:bg-rose-600 disabled:bg-slate-800 disabled:text-slate-600 text-white font-black rounded-xl shadow-lg shadow-rose-950 flex items-center space-x-2 transition tracking-wider text-xs border border-rose-500/40">
         <span>&#10007;</span>
         <span>STAMP DENY [D]</span>
       </button>
     </div>
+
+    <div x-show="verdictReport" class="flex items-center space-x-3">
+      <button @click="dismissModalAndNext()" class="px-6 py-3 bg-sky-600 hover:bg-sky-500 text-white font-black rounded-xl shadow-lg flex items-center space-x-2 transition tracking-wider text-xs font-mono animate-pulse">
+        <span>CALL NEXT TRAVELER [ENTER] &rarr;</span>
+      </button>
+    </div>
   </div>
+
+  <div x-show="showCitationPicker" class="bg-rose-950/90 border-b border-rose-700 px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+    <div class="flex items-center space-x-2 text-xs font-mono text-rose-200">
+      <span class="font-black uppercase tracking-wider px-2 py-0.5 bg-rose-800 rounded text-white">DETENTION CITATION PROTOCOL</span>
+      <span>Select the primary anomaly detected (+150 PTS Forensic Bonus for exact match):</span>
+    </div>
+    <div class="flex flex-wrap items-center gap-2 font-mono text-xs">
+      <button @click="confirmDenialWithCategory('WSDL_MISMATCH')" class="px-3 py-1.5 bg-rose-900 hover:bg-rose-800 border border-rose-500 rounded-lg text-white font-bold transition">
+        [1] WSDL Contract Mismatch (Cap/Curr/DDI/ISO)
+      </button>
+      <button @click="confirmDenialWithCategory('EXPIRED_PASSPORT')" class="px-3 py-1.5 bg-rose-900 hover:bg-rose-800 border border-rose-500 rounded-lg text-white font-bold transition">
+        [2] Expired Passport
+      </button>
+      <button @click="confirmDenialWithCategory('VERBAL_CONTRADICTION')" class="px-3 py-1.5 bg-rose-900 hover:bg-rose-800 border border-rose-500 rounded-lg text-white font-bold transition">
+        [3] Verbal Testimony Contradiction
+      </button>
+      <button @click="confirmDenialWithCategory('INTERPOL_WANTED')" class="px-3 py-1.5 bg-rose-900 hover:bg-rose-800 border border-rose-500 rounded-lg text-white font-bold transition">
+        [4] Interpol Red Notice Warrant
+      </button>
+      <button @click="showCitationPicker = false" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition">
+        Cancel
+      </button>
+    </div>
+  </div>
+
+  <template x-if="verdictReport">
+    <div :class="verdictReport.is_correct ? 'bg-emerald-950/90 border-emerald-700' : 'bg-rose-950/90 border-rose-700'" class="border-b px-6 py-3 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center space-x-3">
+        <div :class="verdictReport.is_correct ? 'bg-emerald-800 text-emerald-200' : 'bg-rose-800 text-rose-200'" class="w-8 h-8 rounded-lg flex items-center justify-center font-black text-lg">
+          <span x-text="verdictReport.is_correct ? '&#10003;' : '&#10007;'"></span>
+        </div>
+        <div class="text-xs font-mono">
+          <div class="font-bold text-white" x-text="(verdictReport.score_delta > 0 ? '+' + verdictReport.score_delta : verdictReport.score_delta) + ' PTS // ' + verdictReport.technical_explanation"></div>
+        </div>
+      </div>
+      <span class="text-[11px] font-mono text-slate-300">Documents remain unlocked on the desk for post-verdict inspection.</span>
+    </div>
+  </template>
 
   <main class="flex-1 p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-7xl mx-auto w-full">
 
@@ -78,14 +157,14 @@
       @pointermove="moveDocDrag($event)"
       @pointerup="stopDocDrag($event)"
       @pointercancel="stopDocDrag($event)"
-      class="lg:col-span-6 customs-desk-surface rounded-2xl border border-slate-700 min-h-[480px] flex flex-col justify-between p-4"
+      class="lg:col-span-6 customs-desk-surface rounded-2xl border border-slate-700 min-h-[490px] flex flex-col justify-between p-4"
     >
       <div class="flex items-center justify-between border-b border-slate-800/80 pb-2 z-0 pointer-events-none">
         <div class="text-[11px] font-bold text-slate-400 tracking-wider uppercase flex items-center space-x-2">
           <span class="w-2 h-2 rounded-full bg-amber-400"></span>
           <span>CUSTOMS INSPECTION DESK (DRAG DOCUMENTS TO INSPECT)</span>
         </div>
-        <span class="text-[10px] text-slate-400 font-mono">2026 REST PAYLOADS</span>
+        <span x-show="isDevDrawerOpen" class="text-[10px] text-amber-400 font-mono">DEV MODE: 2026 REST PAYLOADS</span>
       </div>
 
       <template x-if="passenger">
@@ -114,7 +193,7 @@
                   <img :src="passenger.flag_url" alt="Flag" class="w-7 h-5 object-cover rounded border border-slate-400 shadow-sm pointer-events-none">
                   <div>
                     <div class="text-xs font-black text-slate-900 uppercase tracking-wide" x-text="passenger.declared_country_name"></div>
-                    <div class="text-[9px] font-mono text-slate-600" x-text="'CAP: ' + passenger.declared_capital"></div>
+                    <div class="text-[9px] font-mono text-slate-600" x-text="'ISSUING CAPITAL: ' + passenger.declared_capital"></div>
                   </div>
                 </div>
                 <span class="px-2 py-0.5 rounded bg-amber-900 text-amber-100 font-mono text-[11px] font-bold" x-text="'ISO: ' + passenger.declared_iso_code"></span>
@@ -143,7 +222,7 @@
                   </div>
                   <div>
                     <span class="text-[9px] text-slate-500 block uppercase">Valid Until</span>
-                    <span :class="passenger.is_expired ? 'text-rose-700 font-black underline' : 'text-emerald-800 font-bold'" x-text="passenger.expiration_date + (passenger.is_expired ? ' [EXPIRED]' : '')"></span>
+                    <span class="font-bold text-slate-900" x-text="passenger.expiration_date"></span>
                   </div>
                 </div>
               </div>
@@ -191,7 +270,7 @@
 
             <div class="bg-slate-200/70 p-2 rounded border border-slate-300 text-[10px] font-mono text-slate-700 mb-3 space-y-1">
               <div class="flex justify-between">
-                <span>ORIGIN CAPITAL:</span>
+                <span>DECLARED CAPITAL:</span>
                 <span class="font-bold text-slate-900" x-text="passenger.declared_capital"></span>
               </div>
               <div class="flex justify-between">
@@ -213,8 +292,8 @@
       </template>
 
       <div class="flex items-center justify-between text-[10px] text-slate-400 font-mono z-0 pointer-events-none pt-2 border-t border-slate-800/70">
-        <span>CLICK &amp; DRAG CARDS TO COMPARE</span>
-        <span x-text="passenger ? ('REST: ' + passenger.rest_telemetry.latency_ms + 'ms | ' + passenger.rest_telemetry.bytes_received + 'B') : ''"></span>
+        <span>SHIFT DATE: 2026-11-16 // CHECK EXPIRATION DATES</span>
+        <span x-show="isDevDrawerOpen" class="text-amber-400" x-text="passenger ? ('REST: ' + passenger.rest_telemetry.latency_ms + 'ms | ' + passenger.rest_telemetry.bytes_received + 'B') : ''"></span>
       </div>
     </section>
 
@@ -242,10 +321,10 @@
 
       <div class="flex-1 p-4 flex flex-col">
 
-        <div x-show="activeWindow === 'mainframe'" class="crt-monitor rounded-xl p-4 flex-1 flex flex-col justify-between font-crt text-lg min-h-[420px]">
+        <div x-show="activeWindow === 'mainframe'" class="crt-monitor rounded-xl p-4 flex-1 flex flex-col justify-between font-crt text-lg min-h-[430px]">
           <div>
             <div class="text-emerald-500 text-sm tracking-widest flex justify-between border-b border-emerald-950 pb-1 mb-3">
-              <span>IBM CICS // WSDL SOAP 1.1 TERMINAL</span>
+              <span>IBM CICS // WSDL SOAP 1.1 TERMINAL (9600 BPS)</span>
               <span>OORSPRONG GATEWAY</span>
             </div>
 
@@ -258,9 +337,9 @@
                 <div class="text-emerald-500 font-bold">CANONICAL WSDL RECORD BUFFER:</div>
                 <template x-if="mainframeData && mainframeData.canonical_record">
                   <div>
-                    <div>NATION: <span class="text-white font-bold" x-text="mainframeData.canonical_record.name + ' (' + mainframeData.canonical_record.iso_code + ')'"></span></div>
-                    <div>CAPITAL: <span class="text-white font-bold" x-text="mainframeData.canonical_record.capital"></span></div>
-                    <div>CURRENCY: <span class="text-white font-bold" x-text="mainframeData.canonical_record.currency_code"></span> | DDI: <span class="text-white font-bold" x-text="'+' + mainframeData.canonical_record.phone_code"></span></div>
+                    <div x-show="teletypeVisibleFields >= 2">NATION: <span class="text-white font-bold" x-text="mainframeData.canonical_record.name + ' (' + mainframeData.canonical_record.iso_code + ')'"></span></div>
+                    <div x-show="teletypeVisibleFields >= 3">CAPITAL: <span class="text-white font-bold" x-text="mainframeData.canonical_record.capital"></span></div>
+                    <div x-show="teletypeVisibleFields >= 4">CURRENCY: <span class="text-white font-bold" x-text="mainframeData.canonical_record.currency_code"></span> | DDI: <span class="text-white font-bold" x-text="'+' + mainframeData.canonical_record.phone_code"></span></div>
                   </div>
                 </template>
                 <template x-if="!mainframeData">
@@ -288,14 +367,14 @@
           </div>
         </div>
 
-        <div x-show="activeWindow === 'interpol'" class="bg-slate-950 rounded-xl p-5 flex-1 flex flex-col justify-between border border-blue-900/60 min-h-[420px]">
+        <div x-show="activeWindow === 'interpol'" class="bg-slate-950 rounded-xl p-5 flex-1 flex flex-col justify-between border border-blue-900/60 min-h-[430px]">
           <div>
             <div class="flex items-center justify-between border-b border-blue-900/60 pb-2 mb-4">
               <div class="flex items-center space-x-2">
                 <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
                 <span class="text-xs font-bold text-blue-400 font-mono">INTERPOL BIOMETRIC WATCHLIST // REST CLIENT v2.4</span>
               </div>
-              <span class="text-[10px] text-slate-500 font-mono">REST JSON OVER HTTP</span>
+              <span class="text-[10px] text-slate-500 font-mono">CRIMINAL WARRANT REGISTRY</span>
             </div>
 
             <div class="flex items-center space-x-3 mb-5">
@@ -337,20 +416,20 @@
 
           <div class="text-[10px] text-slate-500 font-mono border-t border-slate-900 pt-2 flex justify-between">
             <span>DATABASE: INTERPOL CENTRAL</span>
-            <span x-text="interpolData ? (interpolData.rest_telemetry.latency_ms + 'ms | ' + interpolData.rest_telemetry.bytes_received + 'B') : 'IDLE'"></span>
+            <span x-show="isDevDrawerOpen" class="text-amber-400" x-text="interpolData ? (interpolData.rest_telemetry.latency_ms + 'ms | ' + interpolData.rest_telemetry.bytes_received + 'B') : 'IDLE'"></span>
           </div>
         </div>
 
-        <div x-show="activeWindow === 'rules'" class="bg-amber-950/20 rounded-xl p-5 flex-1 flex flex-col justify-between border border-amber-900/60 min-h-[420px] font-mono text-xs text-amber-200">
+        <div x-show="activeWindow === 'rules'" class="bg-amber-950/20 rounded-xl p-5 flex-1 flex flex-col justify-between border border-amber-900/60 min-h-[430px] font-mono text-xs text-amber-200">
           <div>
             <div class="text-amber-400 font-bold border-b border-amber-900/60 pb-2 mb-3 tracking-wider uppercase">
               BORDER OPERATIONAL REGULATION // DIRECTIVE 44-B
             </div>
             <ul class="space-y-2.5 list-disc list-inside text-slate-300 leading-relaxed">
               <li><strong class="text-amber-300">Documentos Físicos na Mesa:</strong> Arraste o Passaporte e o Manifesto de Câmbio pela mesa para inspecionar todos os campos.</li>
-              <li><strong class="text-amber-300">Conferência WSDL SOAP:</strong> Digite o código ISO no <code class="text-emerald-400">MAINFRAME.EXE</code>. Verifique se Capital, Moeda e DDI conferem.</li>
-              <li><strong class="text-amber-300">Validade e Fala:</strong> Rejeite passaportes expirados ou viajantes cujo depoimento contradiga o documento.</li>
-              <li><strong class="text-amber-300">Atalhos Rápidos:</strong> Pressione <kbd class="px-1.5 py-0.5 bg-slate-800 rounded">A</kbd> para Aprovar ou <kbd class="px-1.5 py-0.5 bg-slate-800 rounded">D</kbd> para Negar.</li>
+              <li><strong class="text-amber-300">Interrogatório Ativo:</strong> Use os botões abaixo do balão de fala para questionar Origem, Moeda e Motivo da viagem.</li>
+              <li><strong class="text-amber-300">Conferência WSDL SOAP:</strong> Digite o código ISO no <code class="text-emerald-400">MAINFRAME.EXE</code>. Verifique Capital, Moeda e DDI.</li>
+              <li><strong class="text-amber-300">Bônus Pericial (+150 PTS):</strong> Ao negar entrada (<kbd class="px-1 bg-slate-800 rounded">D</kbd>), aponte a causa exata da infração no ticket de detenção.</li>
             </ul>
           </div>
           <div class="text-[10px] text-slate-500 pt-2 border-t border-amber-900/40">
@@ -363,45 +442,72 @@
 
   </main>
 
-  <section class="max-w-7xl mx-auto w-full px-4 lg:px-6 pb-6">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+  <section x-show="isDevDrawerOpen" class="max-w-7xl mx-auto w-full px-4 lg:px-6 pb-8">
+    <div class="bg-slate-900 border-2 border-amber-500/40 rounded-2xl p-6 shadow-2xl">
+      <div class="flex flex-wrap items-center justify-between border-b border-slate-800 pb-3 mb-4 gap-3">
         <div>
-          <h2 class="text-sm font-bold text-slate-200 font-mono uppercase tracking-wider">Protocol Network Telemetry &amp; Raw Payloads</h2>
-          <p class="text-xs text-slate-400">Comparing real SOAP 1.1 WSDL Envelopes against REST JSON payloads</p>
+          <div class="flex items-center space-x-2">
+            <span class="px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded text-[10px] font-mono font-bold">DEVELOPER / ACADEMIC AUDITOR</span>
+            <h2 class="text-sm font-bold text-slate-100 font-mono uppercase tracking-wider">Protocol Network Telemetry &amp; Raw Payloads</h2>
+          </div>
+          <p class="text-xs text-slate-400 mt-0.5">Real-time instrumentation comparing SOAP 1.1 WSDL XML Envelopes against REST JSON payloads</p>
         </div>
 
-        <div class="flex space-x-2">
-          <button @click="activeTelemetryTab = 'metrics'" :class="activeTelemetryTab === 'metrics' ? 'bg-slate-800 text-white' : 'text-slate-400 hover:text-slate-200'" class="px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition">Metrics</button>
+        <div class="flex flex-wrap items-center gap-2">
+          <button @click="triggerFaultSimulation()" class="px-3 py-1.5 rounded-lg text-xs font-mono font-bold bg-rose-950 hover:bg-rose-900 text-rose-300 border border-rose-700 transition">
+            &#9888; SIMULATE SOAP FAULT vs REST 404
+          </button>
+          <button @click="activeTelemetryTab = 'metrics'" :class="activeTelemetryTab === 'metrics' ? 'bg-slate-800 text-white' : 'text-slate-400 hover:text-slate-200'" class="px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition">Round &amp; Session Metrics</button>
           <button @click="activeTelemetryTab = 'soap_req'" :class="activeTelemetryTab === 'soap_req' ? 'bg-slate-800 text-white' : 'text-slate-400 hover:text-slate-200'" class="px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition">SOAP Req XML</button>
           <button @click="activeTelemetryTab = 'soap_res'" :class="activeTelemetryTab === 'soap_res' ? 'bg-slate-800 text-white' : 'text-slate-400 hover:text-slate-200'" class="px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition">SOAP Res XML</button>
           <button @click="activeTelemetryTab = 'rest_res'" :class="activeTelemetryTab === 'rest_res' ? 'bg-slate-800 text-white' : 'text-slate-400 hover:text-slate-200'" class="px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition">REST Res JSON</button>
         </div>
       </div>
 
-      <div x-show="activeTelemetryTab === 'metrics'" class="grid grid-cols-1 md:grid-cols-3 gap-4 font-mono text-xs">
-        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
-          <div class="text-slate-400 font-medium">Round-Trip Latency</div>
-          <div class="flex items-baseline space-x-3 mt-2">
-            <div>REST: <span class="text-base font-bold text-blue-400" x-text="passenger ? passenger.rest_telemetry.latency_ms + 'ms' : '-'"></span></div>
-            <div class="text-slate-600">vs</div>
-            <div>SOAP: <span class="text-base font-bold text-emerald-400" x-text="mainframeData ? mainframeData.soap_telemetry.latency_ms + 'ms' : '-'"></span></div>
+      <div x-show="activeTelemetryTab === 'metrics'" class="space-y-4 font-mono text-xs">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+            <div class="text-slate-400 font-medium">Current Round Latency</div>
+            <div class="flex items-baseline space-x-3 mt-2">
+              <div>REST: <span class="text-base font-bold text-blue-400" x-text="passenger ? passenger.rest_telemetry.latency_ms + 'ms' : '-'"></span></div>
+              <div class="text-slate-600">vs</div>
+              <div>SOAP: <span class="text-base font-bold text-emerald-400" x-text="mainframeData ? mainframeData.soap_telemetry.latency_ms + 'ms' : '-'"></span></div>
+            </div>
+          </div>
+
+          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+            <div class="text-slate-400 font-medium">Current Round Payload (Bytes)</div>
+            <div class="flex items-baseline space-x-3 mt-2">
+              <div>REST: <span class="text-base font-bold text-blue-400" x-text="passenger ? passenger.rest_telemetry.bytes_received + ' B' : '-'"></span></div>
+              <div class="text-slate-600">vs</div>
+              <div>SOAP: <span class="text-base font-bold text-emerald-400" x-text="mainframeData ? mainframeData.soap_telemetry.bytes_received + ' B' : '-'"></span></div>
+            </div>
+          </div>
+
+          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+            <div class="text-slate-400 font-medium">XML Envelope Overhead</div>
+            <div class="text-base font-bold text-amber-400 mt-2" x-text="calculateOverhead()">-</div>
+            <div class="text-[10px] text-slate-500 mt-1">Due to XML closing tags, namespaces and SOAP headers</div>
           </div>
         </div>
 
-        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
-          <div class="text-slate-400 font-medium">Payload Received (Bytes)</div>
-          <div class="flex items-baseline space-x-3 mt-2">
-            <div>REST: <span class="text-base font-bold text-blue-400" x-text="passenger ? passenger.rest_telemetry.bytes_received + ' B' : '-'"></span></div>
-            <div class="text-slate-600">vs</div>
-            <div>SOAP: <span class="text-base font-bold text-emerald-400" x-text="mainframeData ? mainframeData.soap_telemetry.bytes_received + ' B' : '-'"></span></div>
+        <div class="bg-slate-950/70 p-4 rounded-xl border border-slate-800/80 grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div>
+            <span class="text-[10px] text-slate-500 block uppercase">Cumulative REST Calls</span>
+            <span class="text-sm font-bold text-blue-300" x-text="sessionStats.restCalls + ' calls (Avg ' + averageRestLatency() + 'ms)'"></span>
           </div>
-        </div>
-
-        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
-          <div class="text-slate-400 font-medium">XML Envelope Overhead</div>
-          <div class="text-base font-bold text-amber-400 mt-2" x-text="calculateOverhead()">-</div>
-          <div class="text-[10px] text-slate-500 mt-1">Due to XML closing tags, namespaces and SOAP headers</div>
+          <div>
+            <span class="text-[10px] text-slate-500 block uppercase">Cumulative SOAP Calls</span>
+            <span class="text-sm font-bold text-emerald-300" x-text="sessionStats.soapCalls + ' calls (Avg ' + averageSoapLatency() + 'ms)'"></span>
+          </div>
+          <div>
+            <span class="text-[10px] text-slate-500 block uppercase">Total REST Bytes</span>
+            <span class="text-sm font-bold text-blue-300" x-text="sessionStats.totalRestBytes + ' B'"></span>
+          </div>
+          <div>
+            <span class="text-[10px] text-slate-500 block uppercase">Total SOAP Bytes</span>
+            <span class="text-sm font-bold text-emerald-300" x-text="sessionStats.totalSoapBytes + ' B'"></span>
+          </div>
         </div>
       </div>
 
@@ -416,30 +522,19 @@
       <div x-show="activeTelemetryTab === 'rest_res'" class="bg-slate-950 p-4 rounded-xl border border-slate-800">
         <pre><code class="language-json font-mono-code text-xs" x-text="passenger ? formatJson(passenger.rest_telemetry.raw_response) : 'Awaiting REST response...'"></code></pre>
       </div>
-    </div>
-  </section>
 
-  <template x-if="verdictModal">
-    <div class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
-        <div class="flex items-center space-x-3">
-          <div :class="verdictModal.is_correct ? 'bg-emerald-950 border-emerald-600 text-emerald-400' : 'bg-rose-950 border-rose-600 text-rose-400'" class="w-12 h-12 rounded-xl border flex items-center justify-center text-2xl font-bold">
-            <span x-text="verdictModal.is_correct ? '&#10003;' : '&#10007;'"></span>
-          </div>
-          <div>
-            <h3 class="font-bold text-lg text-white" x-text="verdictModal.is_correct ? 'JUDGMENT ACCURATE (+100 PTS)' : 'JUDGMENT VIOLATION (-50 PTS)'"></h3>
-            <div class="text-xs text-slate-400 font-mono" x-text="'Decision: ' + verdictModal.decision + ' | Case: ' + (verdictModal.is_fraud ? 'FRAUDULENT' : 'LEGITIMATE')"></div>
-          </div>
+      <div x-show="activeTelemetryTab === 'fault_sim'" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="bg-slate-950 p-4 rounded-xl border border-rose-900/60">
+          <div class="text-xs font-mono font-bold text-rose-400 mb-2">SOAP 1.1 FAULT ENVELOPE (HTTP 500 + &lt;soap:Fault&gt;)</div>
+          <pre><code class="language-xml font-mono-code text-xs" x-text="faultSimulationData ? faultSimulationData.soap_fault_telemetry.raw_response : ''"></code></pre>
         </div>
-
-        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 text-sm text-slate-300 font-mono" x-text="verdictModal.technical_explanation"></div>
-
-        <button @click="dismissModalAndNext()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 font-bold rounded-xl text-white transition shadow-lg shadow-emerald-950 tracking-wider font-mono text-xs">
-          CALL NEXT TRAVELER [ENTER] &rarr;
-        </button>
+        <div class="bg-slate-950 p-4 rounded-xl border border-blue-900/60">
+          <div class="text-xs font-mono font-bold text-blue-400 mb-2">REST SEMANTIC ERROR (HTTP 404 + JSON)</div>
+          <pre><code class="language-json font-mono-code text-xs" x-text="faultSimulationData ? faultSimulationData.rest_error_telemetry.raw_response : ''"></code></pre>
+        </div>
       </div>
     </div>
-  </template>
+  </section>
 
 </body>
 </html>
