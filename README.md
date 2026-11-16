@@ -1,38 +1,36 @@
 # Border Control: 1999 vs. 2026 (Workstation Edition)
 
-Aplicação web acadêmica e gamificada no estilo *Papers, Please*, desenvolvida para integrar, instrumentar e comparar em tempo de execução real uma **API REST pública (JSON)** e um **Web Service SOAP público (XML baseado em WSDL)** em uma arquitetura de sistemas distribuídos.
+Aplicação web acadêmica e gamificada no estilo *Papers, Please*, desenvolvida para integrar, instrumentar e comparar em tempo de execução real **APIs REST públicas (JSON)** e um **Web Service SOAP público (XML baseado em WSDL)** em uma arquitetura coesa de sistemas distribuídos.
 
 ---
 
 ## 1. Documentações Oficiais e Contratos WSDL
 
-| Serviço / Protocolo | Papel na Aplicação | Documentação Oficial | Endpoint de Produção / WSDL | Backup Local no Repositório |
+| Serviço / Protocolo | Papel na Aplicação | Documentação Oficial | Endpoint de Produção / Link Direto WSDL | Backup Local no Repositório |
 | :--- | :--- | :--- | :--- | :--- |
-| **CountryInfoService (SOAP 1.1 / XML)** | **Mainframe Governamental (1999):** Fonte canônica e imutável de dados internacionais (Capital, Moeda, Código DDI, Continente). | [Oorsprong CountryInfo Docs](http://webservices.oorsprong.org/websamples.countryinfo/CountryInfoService.wso) | [CountryInfoService.wso?WSDL](http://webservices.oorsprong.org/websamples.countryinfo/CountryInfoService.wso?WSDL) | [`contracts/CountryInfoService.wsdl`](./contracts/CountryInfoService.wsdl) |
+| **CountryInfoService (SOAP 1.1 / XML)** | **Mainframe Governamental (1999):** Fonte canônica de dados internacionais (Capital, Moeda, Código DDI, Continente). | [Oorsprong CountryInfo Docs](http://webservices.oorsprong.org/websamples.countryinfo/CountryInfoService.wso) | [http://webservices.oorsprong.org/websamples.countryinfo/CountryInfoService.wso?WSDL](http://webservices.oorsprong.org/websamples.countryinfo/CountryInfoService.wso?WSDL) | [`contracts/CountryInfoService.wsdl`](./contracts/CountryInfoService.wsdl) |
 | **Countries API (Cloudflare / REST JSON)** | **Terminal do Viajante (2026):** Dados dinâmicos de países, capitais, bandeiras e códigos de discagem. | [Cloudflare Countries API](https://countries-api.davegarvey.workers.dev/countries) | `https://countries-api.davegarvey.workers.dev/countries/{code}` | N/A (JSON Schema Dinâmico) |
 | **RandomUser Generator API (REST JSON)** | **Identidade Cultural Dinâmica (2026):** Gera nomes reais e datas de nascimento nativas de acordo com a nacionalidade (`?nat={iso}`) do viajante. | [RandomUser.me Documentation](https://randomuser.me/documentation) | `https://randomuser.me/api/?nat={code}&inc=name,dob,nat` | N/A (JSON Schema Dinâmico) |
-| **Interpol Biometric Watchlist (REST JSON)** | **Registro de Segurança (2026):** Consulta em tempo real de mandados internacionais e status criminal. | Módulo Nativo REST | `/api/inspections/{id}/interpol-query` | N/A (REST JSON Endpoint) |
+| **Daily Wanted Bulletin (REST JSON)** | **Registro de Segurança (2026):** Boletim diário dos 3 fugitivos procurados no turno. | Módulo Nativo REST | `/api/inspections/shift/current` | N/A (REST JSON Endpoint) |
 
 ---
 
-## 2. Metáfora de Domínio e Mecânica da Cabine (Estilo *Papers, Please*)
+## 2. Mecânica da Cabine e Integração entre Protocolos
 
-O jogador atua como um oficial de alfândega em uma cabine de fronteira internacional. A cada rodada, um viajante se apresenta ao balcão e múltiplas fontes de informação devem ser confrontadas manualmente:
+O jogador atua como oficial de alfândega em uma cabine de fronteira com 3 áreas físicas interativas:
 
-1. **Depoimento Verbal (Balão de Fala):** O viajante fala espontaneamente ao chegar (ex: *"Bom dia oficial. Estou vindo de Tóquio visitar minha irmã com 3000 ienes."*). Contradições entre a fala e o passaporte indicam fraude.
-2. **Passaporte Físico na Mesa de Inspeção:** Livreto com textura tátil contendo foto 3x4, nome completo, data de nascimento/idade, data de emissão, data de validade (documentos expirados devem ser barrados!), código ISO e número de documento.
-3. **Computador de Bordo (Workstation OS 1999):**
-   * **`MAINFRAME.EXE` (Cliente SOAP 1.1 WSDL):** Terminal CRT em fósforo verde com prompt manual. O jogador lê o código ISO no passaporte e **digita manualmente** o comando (ex: `QUERY JP` ou `JP`). O sistema transmite o envelope SOAP XML, mantém histórico rolável de transações e exibe os dados oficiais do WSDL.
-   * **`WATCHLIST.EXE` (Cliente REST JSON):** Aplicativo estilo Windows 98 para escanear o passaporte na base da Interpol via endpoint REST, alertando sobre mandados internacionais de prisão (*Red Notice*).
-   * **`RULES.TXT`:** Manual de diretrizes operacionais do posto alfandegário.
-4. **Carimbos de Mesa Interativos:** O jogador clica fisicamente no carimbo **`[APPROVE PASS]`** (verde) ou **`[DENY ENTRY]`** (vermelho), estampando diretamente sobre o passaporte com efeito sonoro percussivo via Web Audio API.
+1. **Vidro da Cabine (Superior Esquerdo):** O viajante se aproxima caminhando. O oficial solicita os documentos (`"Papers, Please"`) e interroga o passageiro em um chat com histórico e indicador de digitação.
+2. **Monitor CRT 1999 + Impressora Matricial (Superior Direito):**
+   * **`MAINFRAME.EXE` (Cliente SOAP 1.1 WSDL):** O oficial lê o código ISO no passaporte e digita no terminal CRT. A aplicação envia um **Envelope XML SOAP** ao `CountryInfoService`, decodifica a resposta e imprime os dados canônicos em papel contínuo na mesa.
+   * **`WANTED_LIST.EXE` (Cliente REST JSON):** Spooler que imprime na mesa a lista com foto e nome dos **3 Procurados do Dia**.
+3. **Mesa Metálica de Inspeção (Inferior):** Espaço físico com arraste via Pointer Events, livro de regras A4 com capa dura vermelha e páginas viráveis, passaporte eletrônico (com retrato DiceBear, holograma e MRZ), manifesto monetário, estação de carimbos (`ADMIT` / `DETAIN` com justificativa pericial) e lixeira externa à esquerda.
 
 ---
 
 ## 3. Evidências Reais de Payloads Brutos Capturados
 
 ### 3.1. SOAP: Envelope XML Enviado (Request)
-* **Protocolo:** SOAP 1.1 over HTTP/1.1 (POST)
+* **Código-fonte responsável:** [`app/adapters/soap_adapter.py`](./app/adapters/soap_adapter.py) (usando `zeep` + `HistoryPlugin`)
 * **Endpoint:** `http://webservices.oorsprong.org/websamples.countryinfo/CountryInfoService.wso`
 * **Operação:** `FullCountryInfo`
 * **Tamanho do Payload:** 288 bytes
@@ -48,7 +46,7 @@ O jogador atua como um oficial de alfândega em uma cabine de fronteira internac
 </soap:Envelope>
 ```
 
-### 3.2. SOAP: Envelope XML Recebido (Response)
+### 3.2. SOAP: Bloco XML Recebido (Response)
 * **Status HTTP:** `200 OK`
 * **Content-Type:** `text/xml; charset=utf-8`
 * **Tamanho do Payload:** 762 bytes
@@ -78,13 +76,10 @@ O jogador atua como um oficial de alfândega em uma cabine de fronteira internac
 </soap:Envelope>
 ```
 
-### 3.3. REST: Documento JSON Recebido (Response)
-* **Protocolo:** HTTP/1.1 / HTTP/2 (GET)
-* **Endpoint:** `https://countries-api.davegarvey.workers.dev/countries/JP`
-* **Status HTTP:** `200 OK`
-* **Content-Type:** `application/json; charset=utf-8`
-* **Tamanho do Payload:** 248 bytes
+### 3.3. REST: Texto JSON Recebido (Countries API + RandomUser API)
+* **Código-fonte responsável:** [`app/adapters/rest_adapter.py`](./app/adapters/rest_adapter.py) e [`app/adapters/random_user_adapter.py`](./app/adapters/random_user_adapter.py) (usando `httpx.AsyncClient`)
 
+**Exemplo 1 — Countries API (`GET https://countries-api.davegarvey.workers.dev/countries/JP` — 248 bytes):**
 ```json
 {
   "name": "Japan",
@@ -100,6 +95,32 @@ O jogador atua como um oficial de alfândega em uma cabine de fronteira internac
   "currency": "JPY",
   "flag": "🇯🇵",
   "callingCode": "+81"
+}
+```
+
+**Exemplo 2 — RandomUser API (`GET https://randomuser.me/api/?nat=BR&inc=name,dob,nat` — 214 bytes):**
+```json
+{
+  "results": [
+    {
+      "name": {
+        "title": "Ms",
+        "first": "Violeta",
+        "last": "da Costa"
+      },
+      "dob": {
+        "date": "1967-04-23T12:48:32.781Z",
+        "age": 59
+      },
+      "nat": "BR"
+    }
+  ],
+  "info": {
+    "seed": "11a37947031662d5",
+    "results": 1,
+    "page": 1,
+    "version": "1.4"
+  }
 }
 ```
 
@@ -120,63 +141,97 @@ flowchart LR
         JSON --> Status[Semantic HTTP Status 200/404/422]
     end
 
-    Envelope -.->|Overhead +50% a +70% bytes| JSON
+    Envelope -.->|Overhead +207% bytes| JSON
 ```
 
-### 4.1. Overhead de Serialização e Tamanho de Payload
-* **SOAP:** Exige a presença de `<soap:Envelope>`, `<soap:Body>`, declaração de namespaces (`xmlns:soap`, `xmlns:m`) e tags verbosas de abertura e fechamento para cada elemento textual (`<m:sCapitalCity>Tokyo</m:sCapitalCity>`). O payload de resposta totalizou **762 bytes**.
-* **REST:** Utiliza sintaxe concisa baseada em pares chave-valor `{}` e arrays `[]`. O documento JSON correspondente totalizou **248 bytes**.
-* **Resultado Mensurado:** O protocolo SOAP gerou um **overhead de +207% em bytes transmitidos** em comparação direta com o REST.
-
-### 4.2. Tipagem e Contrato: WSDL/XSD vs. JSON Dinâmico
-* **SOAP (WSDL / XSD):** O contrato formal `CountryInfoService.wsdl` define estritamente os tipos de dados via XML Schema (`xs:string`, `xs:complexType`). Ferramentas como o `Zeep` compilam os tipos e validam a estrutura da mensagem antes do envio, garantindo integridade estrita. Códigos inexistentes como `ZZ` disparam falha na resolução do schema.
-* **REST (JSON):** Tipagem dinâmica nativa. A flexibilidade permite rápida iteração, mas exige validação em camada de aplicação (Pydantic).
-
-### 4.3. Tratamento de Erros: `SOAP Fault` vs. Códigos HTTP Semânticos
-* **SOAP:** Erros de schema ou negócio retornam `<soap:Fault>` com `<faultcode>`, `<faultstring>` e `<detail>`, muitas vezes envelopados em HTTP 400 ou 500.
-* **REST:** Utiliza a semântica nativa da RFC do protocolo HTTP (`404 Not Found`, `422 Unprocessable Content`). O cliente consegue reagir imediatamente inspecionando o status header.
+* **Overhead de Payload:** O SOAP encapsula os dados em `<soap:Envelope>`, `<soap:Body>`, namespaces XML e tags repetitivas de abertura e fechamento (**762 bytes**), resultando em **+207% de overhead** frente aos **248 bytes** do JSON equivalente da Countries API.
+* **Tipagem e Contrato:** O contrato `CountryInfoService.wsdl` impõe validação rígida por XML Schema (`xs:string`, `tCountryInfo`) antes do envio via `Zeep`, enquanto as APIs REST oferecem esquema dinâmico em JSON validado no backend via Pydantic.
+* **Tratamento de Erros:** Falhas no SOAP retornam `<soap:Fault>` (`<faultcode>`, `<faultstring>`, `<detail>`) dentro do corpo XML (geralmente com HTTP 500/400), exigindo parsing XML pelo cliente. No REST, o status semântico HTTP (`404 Not Found`, `422 Unprocessable Content`) identifica o erro diretamente no cabeçalho.
 
 ---
 
-## 5. Arquitetura de Software e Design Patterns
+## 5. Dificuldades Encontradas e Observações Importantes do Trabalho
+
+Durante o desenvolvimento e integração em ambiente real, enfrentamos desafios práticos relevantes sobre sistemas distribuídos:
+
+1. **Descontinuação Repentina de API Pública REST:** Inicialmente o projeto consumia a `restcountries.com/v3.1`, que passou a retornar `HTTP 301` com aviso de deprecação exigindo chave paga na v5. Graças ao **Adapter Pattern** isolado no projeto, foi possível migrar para a `countries-api.davegarvey.workers.dev` alterando apenas `RestCountriesAdapter` sem impactar o motor de regras.
+2. **Disponibilidade e Latência de Serviços SOAP Legados:** Serviços SOAP públicos antigos (como servidores do BCB e `dataaccess.com`) apresentaram falhas de proxy reverso (502) e handshake TLS. Para garantir resiliência durante apresentações ao vivo, implementamos **cópia local de backup do contrato** em `contracts/CountryInfoService.wsdl` com fallback automático caso o WSDL remoto sofra timeout.
+3. **Limitação Regional de APIs de Identidade:** A `randomuser.me` suporta nativamente 21 nacionalidades (`nat`); para os demais países da lista de 30 nações (como Japão, Itália e Argentina), implementamos um fallback cultural regional para manter a coerência entre nome e país de origem.
+4. **Captura Real do XML Trafegado:** Bibliotecas SOAP de alto nível abstraem o XML por padrão. Foi necessário acoplar o `HistoryPlugin` do `Zeep` com `lxml.etree` para interceptar os buffers exatos enviados e recebidos na rede sem alterar a chamada de negócio.
+
+---
+
+## 6. Arquitetura do Projeto
 
 ```text
-webservices-rest-soap-integracao/
+border-control-rest-soap/
 ├── app/
-│   ├── main.py                     # Inicialização do FastAPI, CORS e montagem estática
-│   ├── domain/
-│   │   └── models.py               # Entidades de domínio (CountryRecord, ProtocolTelemetry, Passport)
+│   ├── main.py                         # Inicialização FastAPI, middleware no-cache e StaticFiles
+│   ├── domain/models.py                # Modelos de domínio (CountryRecord, Passport, Telemetry)
 │   ├── adapters/
-│   │   ├── rest_adapter.py         # Adapter Pattern: HTTPX assíncrono com telemetria
-│   │   └── soap_adapter.py         # Adapter Pattern: Zeep + HistoryPlugin para captura XML
+│   │   ├── rest_adapter.py             # Cliente REST Countries API (HTTPX)
+│   │   ├── random_user_adapter.py      # Cliente REST RandomUser.me API (HTTPX)
+│   │   └── soap_adapter.py             # Cliente SOAP WSDL (Zeep + HistoryPlugin)
 │   ├── game/
-│   │   ├── strategies.py           # Strategy Pattern: Injeção de fraudes e anomalias
-│   │   ├── repository.py           # Repository Pattern: Sessões de inspeção em memória
-│   │   └── service.py              # Motor do jogo, diálogos e validação de vereditos
-│   └── api/
-│       └── routes.py               # Endpoints REST expostos ao frontend
-├── contracts/
-│   └── CountryInfoService.wsdl     # Cópia local de backup do contrato oficial WSDL
+│   │   ├── strategies.py               # Strategy Pattern: 8 tipos de fraudes e anomalias
+│   │   ├── repository.py               # Repository Pattern em memória
+│   │   └── service.py                  # Motor de turnos (6-10 passageiros) e orquestração
+│   └── api/routes.py                   # Endpoints REST da aplicação
+├── contracts/CountryInfoService.wsdl   # Backup local oficial do contrato WSDL
 ├── static/
-│   └── index.html                  # Workstation SPA em Alpine.js + Tailwind CSS + Web Audio API
-├── tests/
-│   ├── test_wsdl_contract.py       # Teste de conformidade do WSDL
-│   ├── test_adapters.py            # Teste dos adaptadores REST e SOAP
-│   ├── test_game_engine.py         # Teste do motor de jogo e estratégias
-│   └── test_api_endpoints.py       # Teste de integração dos endpoints FastAPI
-├── requirements.txt                # Dependências declaradas
-└── README.md                       # Relatório técnico e documentação
+│   ├── index.html                      # Interface 3-Screen Workstation
+│   ├── css/                            # Estilos procedurais (CRT 3D, papel A4, impressora)
+│   └── js/                             # Arraste Pointer Events, MRZ, Web Audio API e Alpine.js
+└── tests/                              # Suíte Pytest (WSDL, Adaptadores, Motor e Endpoints)
 ```
 
 ---
 
-## 6. Instruções de Execução Local
+## 7. Instalação, Execução e Passo a Passo para Testar
+
+### 7.1. Instalação Local
 
 ```bash
-cd /home/sld2/projects/webservices-rest-soap-integracao
+git clone https://github.com/Tefo02/border-control-rest-soap.git
+cd border-control-rest-soap
+
+python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+```
+
+*(No Windows PowerShell, ative o ambiente virtual com `.venv\Scripts\Activate.ps1`).*
+
+### 7.2. Executar Testes Automatizados (REST, SOAP, WSDL e Motor de Regras)
+
+```bash
 pytest
+```
+Todos os **17 testes** devem passar (`17 passed`), validando o parsing do WSDL local/remoto, chamadas reais REST (`Countries API` e `RandomUser.me`), chamadas reais SOAP (`FullCountryInfo`), estratégias de fraude e ciclo completo dos endpoints FastAPI.
+
+### 7.3. Executar a Aplicação Web
+
+```bash
 uvicorn app.main:app --reload --port 8000
 ```
-Abra o navegador em: [http://localhost:8000](http://localhost:8000).
+Acesse no navegador: **[http://localhost:8000](http://localhost:8000)**
+
+### 7.4. Roteiro Passo a Passo para Testar na Apresentação
+
+1. **Receber o Viajante e Solicitar Documentos:**
+   * Aguarde o passageiro entrar caminhando no guichê (canto superior esquerdo).
+   * Clique em **`"PAPERS, PLEASE" — REQUEST DOCUMENTS`** (ou pressione `Espaço`). O Passaporte e o Manifesto deslizam sequencialmente para a mesa metálica.
+2. **Interrogar e Inspecionar Documentos:**
+   * Arraste os documentos livremente pela mesa. Use o **Livro de Regras** vermelho à esquerda (abra e folheie as 3 páginas) para conferir a data do turno (`2026-11-16`).
+   * Use os botões `Ask Origin/DDI`, `Ask Currency` e `Ask Purpose` para checar contradições no histórico do chat.
+3. **Consultar o Web Service SOAP no Monitor CRT:**
+   * No monitor bege `IBM 8514/A` (canto superior direito), digite o código ISO do passaporte (ex: `JP`, `BR`, `DE`) no prompt `>` e pressione `Enter`.
+   * Observe a discagem no terminal e a **Impressora Matricial (`EPSON FX-80`)** imprimindo progressivamente o recibo oficial WSDL de baixo para cima na mesa.
+4. **Imprimir a Lista de Procurados (REST):**
+   * Alterne para a aba `WANTED_LIST.EXE [REST]` no monitor e clique em **`PRINT DAILY WANTED LIST`** para imprimir o boletim com os 3 procurados do dia.
+5. **Carimbar, Devolver e Limpar a Mesa:**
+   * Arraste o Passaporte para a direita (`STAMPING STATION`) e clique em **`ADMIT`** ou **`DETAIN`** (escolhendo o motivo exato para ganhar +150 PTS).
+   * Arraste o Passaporte carimbado e o Manifesto para cima, dentro da **Janela do Passageiro**, para devolvê-los e encerrar o atendimento.
+   * Recibos impressos antigos podem ser arrastados para fora da borda esquerda da mesa até a lixeira **`FLOOR TRASH`**.
+6. **Auditar Métricas e Payloads Brutos (Modo Apresentação Técnica):**
+   * Clique no botão **`DEV / AUDIT CONSOLE`** no canto superior direito para revelar em tempo real a latência (ms), tamanho em bytes, overhead do XML e as abas com o **XML SOAP bruto**, o **JSON REST bruto** e o simulador **`SIMULATE SOAP FAULT vs REST 404`**.
